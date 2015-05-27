@@ -1,0 +1,7 @@
+nimcache/
+src/nimatoad
+src/vector
+*.swp
+*.blend
+*.blend1
+content/
