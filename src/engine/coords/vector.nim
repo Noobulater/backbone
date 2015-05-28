@@ -1,4 +1,5 @@
 #Written by Matt Nichols
+#Modified by Aaron Bentley
 import math, complex
 
 type Vec3* = object
@@ -8,7 +9,14 @@ proc vec3*(x, y, z: float): Vec3 =
   result = Vec3()
   result.d = [x, y, z]
 
+proc vec3*(x, y, z: int): Vec3 =
+  result = Vec3()
+  result.d = [x.float, y.float, z.float]
+
 proc vec3*(f: float): Vec3 = vec3(f, f, f)
+proc vec3*(f: int): Vec3 =
+  let x = f.float
+  vec3(x, x, x)
 
 proc vec3*(v: Vec3): Vec3 =
   result = Vec3()

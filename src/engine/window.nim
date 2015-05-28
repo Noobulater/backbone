@@ -1,11 +1,18 @@
 #Written by Aaron Bentley 5/19/15
 #Modules
-import sdl2
+import sdl2, opengl, glu, math
 
 #Files
 import globals
-import display, timer, sound
-import gui/panel
+import camera, audio, timer, glx
+import physical/entity, physical/voxel, gui/panel
+import coords/matrix, coords/vector, physical/model, parser/bmp
+
+proc resized(width, height: int) =
+  scrW = width
+  scrH = height
+  glViewport(0, 0, (GLsizei) width, (GLsizei) height)
+  cameraAspect(width.float / height.float)
 
 var
   window: WindowPtr
@@ -16,15 +23,41 @@ proc init*() =
   discard sdl2.init(INIT_EVERYTHING)
   window = createWindow(windowTitle, 500, 100, (cint) scrW, (cint) scrH, SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE)
   context = window.glCreateContext()
-  display.init()
-  resized( scrW, scrH )
+  loadExtensions()
+  glClearColor(0.0, 0.0, 0.0, 1.0)
+  glClearDepth(1.0)
+  glEnable(GL_TEXTURE_2D)
+  glEnable(GL_BLEND)
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+  glEnable(GL_DEPTH_TEST)
+  glEnable(GL_CULL_FACE)
+
+  var phong = initProgram("phong.vert", "phong.frag")
+
+  var skydome = newModel()
+  skydome.program = initProgram("phong.vert", "sky.frag")
+  skydome.mesh = initMesh("content/models/skydome.obj", phong.handle)
+  skydome.material = initMaterial("content/bmps/sky.bmp", "content/bmps/sky.bmp")
+  skydome.setScale(vec3(5000))
+
+  camera.init()
+
+  resized(scrW, scrH)
 
 proc update() =
   timer.update()
-  sound.update()
+  audio.update()
+  camera.ang = vec3(0.0, sin(curTime())*180.0, 0.0)
+
+var z = newPanel(0,0,100,100)
+let sound = Sound("content/whatayabuyin.wav")
+proc buy(button: int, pressed: bool, x,y: float) =
+  sound.play()
+z.doClick = buy
 
 proc display() =
-  display.draw()
+  drawScene()
+  panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
 proc mouseInput( evt: MouseButtonEventPtr ) =

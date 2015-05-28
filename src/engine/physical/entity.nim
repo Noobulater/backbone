@@ -1,4 +1,5 @@
 #Written by Matt Nichols
+import globals
 import engine/coords/matrix, engine/coords/vector
 
 type
@@ -9,8 +10,9 @@ type
     angleVel*: Vec3
     scale*: Vec3
     matrix*: Mat4
+    parent*: Entity
 
-var entities* = @[Entity]
+var entities* = newSeq[Entity]()
 
 proc newEntity*(): Entity = Entity()
 
@@ -21,7 +23,7 @@ method track*(this: Entity): Entity =
 
 # Stops the tracking of this entity.
 method untrack*(this: Entity) =
-  discard entities.remove(this)
+  entities.delete(entities.get(this))
 
 # Recalculates the transform matrix.
 method calcMatrix*(this: Entity) =

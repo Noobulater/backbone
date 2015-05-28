@@ -23,4 +23,6 @@ proc get*[T](m: seq[T], gEntry: T): int =
 proc remove*[T](m: seq[T], rIndex: int) =
   m.delete(rIndex)
 
-proc remove*[T](m: seq[T], rEntry: T) = m.remove(m.get(rEntry))
+proc remove*[T](m: seq[T], rEntry: T) =
+  let x = m.get(rEntry)
+  m.remove(x.Natural)

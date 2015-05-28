@@ -3,7 +3,7 @@ import streams, math, opengl, strutils, tables
 
 var bmpCache = initTable[string, GLuint]() # a mapping of string to GLuint (textureID)
 
-proc parseBmp*( filePath: string ): GLuint =
+proc parseBmp*(filePath: string): GLuint =
   if bmpCache.hasKey(filePath):
     return bmpCache[filePath]
 

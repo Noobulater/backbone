@@ -1,15 +1,15 @@
 import opengl
+import entity
 
 type
-  Voxel* = object
-    v: array[0..15, float]
+  Voxel* = object of Entity
+    v*: array[0..11, float]
 
-    i: array[0..5, uint8]
+    i*: array[0..5, int]
 
-proc newVoxel*():Voxel = Voxel()
-proc newVoxel*(s: int): Voxel =
-  result = newVoxel()
-  result.v = [1.0'f32, -1.0, 0.0,
+proc newVoxel*(): Voxel =
+  result = Voxel()
+  result.v = [1.0, -1.0, 0.0,
               -1.0, 1.0, 0.0,
               1.0, 1.0, 1.0,
               1.0, -1.0, 0.0]

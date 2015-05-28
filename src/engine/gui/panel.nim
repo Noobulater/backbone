@@ -1,91 +1,8 @@
 #Written by Aaron Bentley 5/27/15
 import opengl, math
 import globals
+import surface
 import engine/coords/matrix, engine/coords/vector
-
-###########################
-######SURFACE STUFF########
-###########################
-# Surface is responsible for interacting with opengl
-# and abstracting much of the drawing procedure so that
-# there isn't any need to consider issues like z-fighting
-# and other things of the nature
-
-# actual Drawing functions
-var # surface uses one draw color, it minimizes alot of calculation
-  dRed = 1.float
-  dGreen = 1.float
-  dBlue = 1.float
-  dAlpha = 1.float
-
-proc setColor*( r,g,b,a: int ) =
-  dRed = (r/255).float
-  dGreen = (g/255).float
-  dBlue = (b/255).float
-  dAlpha = (a/255).float
-
-# proc used to draw a rectangle
-proc rect*( x,y,width,height: float ) =
-  glBegin(GL_QUADS)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x, y, 0 )
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x, y + height, 0)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x + width, y + height, 0)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x + width, y, 0)
-
-  glEnd()
-
-# proc used to draw a rectangle
-proc orect*( x,y,width,height: float ) =
-  glBegin(GL_LINE_LOOP)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x, y, 0 )
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x, y + height, 0)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x + width, y + height, 0)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glVertex3f( x + width, y, 0)
-
-  glEnd()
-
-#Textured Rect
-proc trect*( x,y,width,height: float,textureID: GLuint ) =
-  glEnable(GL_TEXTURE_2D)
-  glBindTexture(GL_TEXTURE_2D, textureID)
-
-  glBegin(GL_QUADS)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 1,1 )
-  glVertex3f( x, y, 0 )
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 1,0 )
-  glVertex3f( x, y + height, 0)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 0,0 )
-  glVertex3f( x + width, y + height, 0)
-
-  glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 0,1 )
-  glVertex3f( x + width, y, 0)
-
-  glEnd()
-  glDisable(GL_TEXTURE_2D)
-
 ######################
 ########PANELS########
 ######################
@@ -212,9 +129,10 @@ proc collide(cPanel: panel, x,y: float): bool = #tests whether or not a panel ha
   return false
 
 proc panelsDraw*() =
-  glDisable(GL_CULL_FACE)
+  #glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
   glUseProgram(0) # make sure we don't mess with the custom shader
-
+  glDisable(GL_TEXTURE_2D)
+  glDisable(GL_CULL_FACE)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
   glMatrixMode(GL_MODELVIEW)
@@ -234,6 +152,7 @@ proc panelsDraw*() =
     #glLoadMatrixf(cScreen.matrix.m[0].addr)
     #cScreen.dive()
   glEnable(GL_CULL_FACE)
+  glEnable(GL_TEXTURE_2D)
 
 #Panel I/O
 proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
@@ -242,8 +161,13 @@ proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
     xCoords, yCoords: float
     xMin,xMax: float
     yMin,yMax: float
+  glUseProgram(0) # make sure we don't mess with the custom shader
+  glDisable(GL_TEXTURE_2D)
   glDisable(GL_CULL_FACE)
-
+  glMatrixMode(GL_PROJECTION)
+  glLoadIdentity()
+  glMatrixMode(GL_MODELVIEW)
+  glLoadIdentity()
   for i in low(mainScreen.children)..high(mainScreen.children):
     cur = mainScreen.children[i]
     if (cur.collide(x,y)) :
@@ -272,6 +196,7 @@ proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
   #      break
 
   glEnable(GL_CULL_FACE)
+  glEnable(GL_TEXTURE_2D)
 
     #take screen coords, convert them to real word coordinates
     #no
