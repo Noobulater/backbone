@@ -12,7 +12,7 @@ type
 var timeSeq: seq[timeObj] = @[]
 
 #simple timer for single repetition calls measured in second
-proc simple*( delay:float, fCall: proc() ) =
+proc simple*(delay:float, fCall: proc()) =
   let entry = timeObj() # constructed
   entry.delay = delay
   entry.nextCall = curTime() + delay
@@ -22,7 +22,7 @@ proc simple*( delay:float, fCall: proc() ) =
   timeSeq.add(entry)
 
 var garbage: seq[int] = @[]#when a timer is expired, remove it
-proc update*() =
+proc update*(dt: float) =
   var entry: timeObj
   let cTime = curTime()
   for i in low(timeSeq)..high(timeSeq):

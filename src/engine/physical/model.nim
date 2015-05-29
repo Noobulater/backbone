@@ -1,5 +1,5 @@
 import opengl
-import entity
+import globals, entity
 import engine/glx, engine/camera
 import engine/coords/vector, engine/coords/matrix
 
@@ -27,7 +27,7 @@ method track*(this: Model): Model =
 # Stops the tracking of this entity.
 method untrack*(this: Model) =
   entity.untrack(this)
-  # models.remove(this)
+  models.delete(models.get(this))
 
 # Initializes this entity.
 method init*(this: Model): Model =

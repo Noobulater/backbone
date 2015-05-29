@@ -25,7 +25,9 @@ proc vec3*(v: Vec3): Vec3 =
 proc `[]`*(v: Vec3, i: int): float = v.d[i]
 proc `[]=`*(v: var Vec3, i: int, x: float) = v.d[i] = x
 proc `==`*(a, b: Vec3): bool = a[0] == b[0] and a[1] == b[1] and a[2] == b[2]
+proc `==`*(a:Vec3, b: float): bool = a[0] == b and a[1] == b and a[2] == b
 proc `!=`*(a, b: Vec3): bool = a[0] != b[0] or a[1] != b[1] or a[2] != b[2]
+proc `!=`*(a:Vec3, b: float): bool = a[0] != b or a[1] != b or a[2] != b
 proc `+=`*(a: var Vec3, b: Vec3) =
   a[0] = a[0] + b[0]
   a[1] = a[1] + b[1]
@@ -95,6 +97,25 @@ proc cross*(a, b: Vec3): Vec3 = vec3(
   a[1]*b[2] - a[2]*b[1],
   a[2]*b[0] - a[0]*b[2],
   a[0]*b[1] - a[1]*b[0])
+
+proc max*(a,b: Vec3): Vec3 =
+  for i in low(a.d)..high(a.d) :
+    if (a[i] > b[i]) :
+      result[i] = a[i]
+    else :
+      result[i] = b[i]
+
+proc maxValue*(a: Vec3): float =
+  result = a[0]
+  for i in 1..high(a.d) : #skip the first compare to save cylces
+    if (a[i] > result) :
+      result = a[i]
+
+proc minValue*(a: Vec3): float =
+  result = a[0]
+  for i in 1..high(a.d) : #skip the first compare to save cylces
+    if (a[i] < result) :
+      result = a[i]
 
 when isMainModule:
   proc test(cond: bool, name: string) =

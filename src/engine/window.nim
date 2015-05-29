@@ -4,9 +4,9 @@ import sdl2, opengl, glu, math
 
 #Files
 import globals
-import camera, audio, timer, glx
-import physical/entity, physical/voxel, gui/panel
-import coords/matrix, coords/vector, physical/model, parser/bmp
+import camera, audio, timer, glx, simulation
+import gui/panel
+import coords/matrix, coords/vector
 
 proc resized(width, height: int) =
   scrW = width
@@ -17,6 +17,18 @@ proc resized(width, height: int) =
 var
   window: WindowPtr
   context: GLContextPtr
+
+var dt: float
+
+# Frame rate limiter
+let targetFramePeriod: uint32 = 20 # 20 milliseconds corresponds to 50 fps
+var frameTime: uint32 = 0
+proc limitFrameRate() =
+  let now = getTicks()
+  if frameTime > now:
+    delay(frameTime - now) # Delay to maintain steady frame rate
+  frameTime += targetFramePeriod
+
 
 proc init*() =
   #created
@@ -32,22 +44,17 @@ proc init*() =
   glEnable(GL_DEPTH_TEST)
   glEnable(GL_CULL_FACE)
 
-  var phong = initProgram("phong.vert", "phong.frag")
+  dt = 0.0
 
-  var skydome = newModel()
-  skydome.program = initProgram("phong.vert", "sky.frag")
-  skydome.mesh = initMesh("content/models/skydome.obj", phong.handle)
-  skydome.material = initMaterial("content/bmps/sky.bmp", "content/bmps/sky.bmp")
-  skydome.setScale(vec3(5000))
-
+  simulation.init()
   camera.init()
 
   resized(scrW, scrH)
 
-proc update() =
-  timer.update()
-  audio.update()
-  camera.ang = vec3(0.0, sin(curTime())*180.0, 0.0)
+proc update(dt: float) =
+  timer.update(dt)
+  audio.update(dt)
+  simulation.update(dt)
 
 var z = newPanel(0,0,100,100)
 let sound = Sound("content/whatayabuyin.wav")
@@ -78,16 +85,16 @@ proc mouseInput( evt: MouseButtonEventPtr ) =
     panelsMouseInput( b, true, evt.x.float, evt.y.float )
 
   #we might not even need type, but i wrote it out anyways. pressing delete is alot easier
-
+let camSpeed = 50.0
 proc mouseMotion( evt: MouseMotionEventPtr ) =
   #Uint8 type;
   #Uint8 state;
   #Uint16 x, y;
   #Sint16 xrel, yrel;
-  discard
+  #discard
   #ShowCursor(mainmenu.cursor)
   #if (not mainmenu.cursor):
-  #  cameraEye(camera.pos, max(min(camera.pitch + evt.yrel.float, 89.9), -89.9), camera.yaw + evt.xrel.float)
+  setViewAngle(max(min(camera.ang.p + evt.yrel.float * camSpeed * dt, 89.9), -89.9), camera.ang.y + evt.xrel.float * camSpeed * dt)
 
 #Handles Single Key Input
 proc keyInput( evt: KeyboardEventPtr ) =
@@ -117,8 +124,15 @@ proc keyInput( evt: KeyboardEventPtr ) =
 
 proc run*() =
   #running
-  var evt = sdl2.defaultEvent
+  var
+    evt = sdl2.defaultEvent
+    lastTime = 0.uint32
+
   while alive:
+
+    dt = (getTicks() - lastTime).float / 1000.0
+    lastTime = getTicks()
+
     while pollEvent(evt):
       if evt.kind == QuitEvent:
         alive = false
@@ -135,6 +149,9 @@ proc run*() =
         mouseInput(evt.button)
       if evt.kind == MouseMotion:
         mouseMotion(evt.motion)
-    update()
+
+    update(dt)
     display()
+    limitFrameRate()
+
     window.glSwapWindow()

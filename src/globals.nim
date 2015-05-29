@@ -1,4 +1,6 @@
 #Written by Aaron Bentley 5/19/15
+#Purpose: This file contains commonly used variables, and also
+#convience functions to make calculations/code more concise
 import sdl2
 
 proc getTime(): float =

@@ -26,9 +26,18 @@ proc update*() =
   view = identity().rotate(pPitch, vec3(1, 0, 0)) * identity().rotate(pYaw, vec3(0, 1, 0)) * identity().translate(pPos * -1)
 
 
+proc setViewAngle*(p,y,r:float) =
+  camera.ang[0] = p
+  camera.ang[1] = y
+  camera.ang[2] = r
+  update()
+
+proc setViewAngle*(p,y:float) =
+  setViewAngle(p,y,camera.ang[2])
+
 proc init*() =
   pos = vec3(0,0,0)
-  ang = vec3(0,180,0)
+  ang = vec3(0,0,0)
   view = identity()
   proj = perspective(fov = 50.0, aspect = scrW/scrH, near = 0.05, far = 10000.0)
   active = true

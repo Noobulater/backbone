@@ -5,12 +5,18 @@ import engine/coords/matrix, engine/coords/vector
 type
   Entity* = ref object of RootObj
     pos*: Vec3
-    vel*: Vec3
+
     angle*: Vec3
-    angleVel*: Vec3
+
     scale*: Vec3
     matrix*: Mat4
     parent*: Entity
+    #physics
+    angleVel*: Vec3
+    vel*: Vec3
+    gravity*: float
+    drag*: float # how quickly an objects velocity decays
+    lmin*,lmax*: Vec3 # axis aligned bounding box : local min, local max
 
 var entities* = newSeq[Entity]()
 
@@ -67,5 +73,25 @@ method init*(this: Entity): Entity =
   this.angle = vec3(0, 0, 0)
   this.angleVel = vec3(0, 0, 0)
   this.scale = vec3(1, 1, 1)
+  this.gravity = 0
+  this.drag = 0
   this.calcMatrix()
   this
+
+method setGravity*(this: Entity, g: float) =
+  this.gravity = g
+
+method setDrag*(this: Entity, d: float) =
+  this.drag = d
+
+method intersect*(this, that:Entity): bool =
+  let
+    #min = this.lmin + this.pos
+    #max = this.lmax + this.pos
+    #tmin = that.lmin + that.pos
+    #tmax = that.lmax + that.pos
+    dist1 = (this.lmin + this.pos) - (that.lmax + that.pos)
+    dist2 = (that.lmin + that.pos) - (this.lmax + this.pos)
+    distance = max(dist1,dist2)
+    #maxValue = distance.maxValue()
+  return (distance.maxValue() < 0)

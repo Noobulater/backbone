@@ -6,7 +6,7 @@ import sdl2, sdl2/mixer
 proc init*() =
   discard
 
-proc update*() =
+proc update*(dt: float) =
   discard
 
 proc destroy*() =
