@@ -22,6 +22,9 @@ proc vec3*(v: Vec3): Vec3 =
   result = Vec3()
   result.d = v.d
 
+proc vec3*(f: varargs[float]): Vec3 =
+  vec3(f[0], f[1], f[2])
+
 proc `[]`*(v: Vec3, i: int): float = v.d[i]
 proc `[]=`*(v: var Vec3, i: int, x: float) = v.d[i] = x
 proc `==`*(a, b: Vec3): bool = a[0] == b[0] and a[1] == b[1] and a[2] == b[2]

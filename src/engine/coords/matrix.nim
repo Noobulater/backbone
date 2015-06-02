@@ -1,7 +1,7 @@
 #Written by Matt Nichols
 import math, complex
 import opengl
-import vector
+import vector, quat
 
 type Mat4* = object
   m*: array[16, GLfloat]
@@ -9,6 +9,94 @@ type Mat4* = object
 proc mat4*(m: Mat4): Mat4 =
   result = Mat4()
   result.m = m.m
+
+proc mat4*(m: varargs[cfloat]): Mat4 =
+  result = Mat4()
+  for i in low(m)..high(m) :
+    result.m[i] = GLfloat(m[i])
+
+proc mat4*(a,b,c: Vec3 ): Mat4 =
+  result = Mat4()
+  result.m[0] = a[0]
+  result.m[4] = a[1]
+  result.m[8] = a[2]
+  result.m[12] = 0.0
+
+  result.m[1] = b[0]
+  result.m[5] = b[1]
+  result.m[9] = b[2]
+  result.m[13] = 0.0
+
+  result.m[2] = c[0]
+  result.m[6] = c[1]
+  result.m[10] = c[2]
+  result.m[14] = 0.0
+
+  result.m[3] = 0.0
+  result.m[7] = 0.0
+  result.m[11] = 0.0
+  result.m[15] = 1.0
+
+proc mat4*(r: Quat, t,s: Vec3 ): Mat4 =
+  result = Mat4()
+  let
+    x = r.x
+    y = r.y
+    z = r.z
+    w = r.w
+    tx = 2*x
+    ty = 2*y
+    tz = 2*z
+    txx = tx*x
+    tyy = ty*y
+    tzz = tz*z
+    txy = tx*y
+    txz = tx*z
+    tyz = ty*z
+    twx = w*tx
+    twy = w*ty
+    twz = w*tz
+
+  result.m[0] = (1 - (tyy + tzz)) * s.x
+  result.m[4] = (txy - twz) * s.y
+  result.m[8] = (txz + twy) * s.z
+  result.m[12] = t[0]
+
+  result.m[1] = (txy + twz) * s.x
+  result.m[5] = (1 - (txx + tzz)) * s.y
+  result.m[9] = (tyz - twx) * s.z
+  result.m[13] = t[1]
+
+  result.m[2] = (txz - twy) * s.x
+  result.m[6] = (tyz + twx) * s.y
+  result.m[10] = (1 - (txx + tyy)) * s.z
+  result.m[14] = t[2]
+
+  result.m[3] = 0.0
+  result.m[7] = 0.0
+  result.m[11] = 0.0
+  result.m[15] = 1.0
+
+  #ROW ORDER VECTORS
+  #  result.m[0] = (1 - (tyy + tzz)) * s.x
+  #  result.m[1] = (txy - twz) * s.y
+  #  result.m[2] = (txz + twy) * s.z
+  #  result.m[3] = t[0]
+
+  #  result.m[4] = (txy + twz) * s.x
+  #  result.m[5] = (1 - (txx + tzz)) * s.y
+  #  result.m[6] = (tyz - twx) * s.z
+  #  result.m[7] = t[1]
+
+  #  result.m[8] = (txz - twy) * s.x
+  #  result.m[9] = (tyz + twx) * s.y
+  #  result.m[10] = (1 - (txx + tyy)) * s.z
+  #  result.m[11] = t[2]
+
+  #  result.m[12] = 0.0
+  #  result.m[13] = 0.0
+  #  result.m[14] = 0.0
+  #  result.m[15] = 1.0
 
 proc identity*(): Mat4 =
   result = Mat4()
@@ -21,6 +109,122 @@ proc `[]`*(m: Mat4, i: int): GLfloat = m.m[i]
 proc `[]=`*(m: var Mat4, i: int, v: GLfloat) = m.m[i] = v
 #proc `[][]`*(m: Mat4, i,j: int): float = m.m[4*i+j]
 #proc `[][]=`*(m: var Mat4, i,j: int, n: float) = m[i][j] = n
+proc `==`*(m: Mat4, f: float): bool = (m.m[0] == f and m.m[1] == f and m.m[2] == f and m.m[3] == f and m.m[4] == f and m.m[5] == f and m.m[6] == f and m.m[7] == f and m.m[8] == f and m.m[9] == f and m.m[10] == f and m.m[11] == f and m.m[12] == f and m.m[13] == f and m.m[14] == f and m.m[15] == f)
+proc `!=`*(m: Mat4, f: float): bool = (m.m[0] != f and m.m[1] != f and m.m[2] != f and m.m[3] != f and m.m[4] != f and m.m[5] != f and m.m[6] != f and m.m[7] != f and m.m[8] != f and m.m[9] != f and m.m[10] != f and m.m[11] != f and m.m[12] != f and m.m[13] != f and m.m[14] != f and m.m[15] != f)
+
+proc `a`*(m: Mat4): Vec3 = vec3(m.m[0],m.m[4],m.m[8])
+proc `b`*(m: Mat4): Vec3 = vec3(m.m[1],m.m[5],m.m[9])
+proc `c`*(m: Mat4): Vec3 = vec3(m.m[2],m.m[6],m.m[10])
+proc `d`*(m: Mat4): Vec3 = vec3(m.m[3],m.m[7],m.m[11])
+
+proc `+`*(m, n: Mat4): Mat4 =
+  result = Mat4()
+  result[0] = m[0] + n[0]
+  result[1] = m[1] + n[1]
+  result[2] = m[2] + n[2]
+  result[3] = m[3] + n[3]
+  result[4] = m[4] + n[4]
+  result[5] = m[5] + n[5]
+  result[6] = m[6] + n[6]
+  result[7] = m[7] + n[7]
+  result[8] = m[8] + n[8]
+  result[9] = m[9] + n[9]
+  result[10] = m[10] + n[10]
+  result[11] = m[11] + n[11]
+  result[12] = m[12] + n[12]
+  result[13] = m[13] + n[13]
+  result[14] = m[14] + n[14]
+  result[15] = m[15] + n[15]
+proc `-`*(m, n: Mat4): Mat4 =
+  result = Mat4()
+  result[0] = m[0] + n[0]
+  result[1] = m[1] + n[1]
+  result[2] = m[2] + n[2]
+  result[3] = m[3] + n[3]
+  result[4] = m[4] + n[4]
+  result[5] = m[5] + n[5]
+  result[6] = m[6] + n[6]
+  result[7] = m[7] + n[7]
+  result[8] = m[8] + n[8]
+  result[9] = m[9] + n[9]
+  result[10] = m[10] + n[10]
+  result[11] = m[11] + n[11]
+  result[12] = m[12] + n[12]
+  result[13] = m[13] + n[13]
+  result[14] = m[14] + n[14]
+  result[15] = m[15] + n[15]
+#COLUMN ORDER MATRIX. IT WOULD'VE BEEN NICE TO KNOW THIS
+proc `/`*(m, n: Mat4): Mat4 =
+  let
+    a00 = m[0]
+    a01 = m[1]
+    a02 = m[2]
+    a03 = m[3]
+    a10 = m[4]
+    a11 = m[5]
+    a12 = m[6]
+    a13 = m[7]
+    a20 = m[8]
+    a21 = m[9]
+    a22 = m[10]
+    a23 = m[11]
+    a30 = m[12]
+    a31 = m[13]
+    a32 = m[14]
+    a33 = m[15]
+    b00 = n[0]
+    b01 = n[1]
+    b02 = n[2]
+    b03 = n[3]
+    b10 = n[4]
+    b11 = n[5]
+    b12 = n[6]
+    b13 = n[7]
+    b20 = n[8]
+    b21 = n[9]
+    b22 = n[10]
+    b23 = n[11]
+    b30 = n[12]
+    b31 = n[13]
+    b32 = n[14]
+    b33 = n[15]
+  result = Mat4()
+  result[0] = b00 / a00 + b01 / a10 + b02 / a20 + b03 / a30
+  result[1] = b00 / a01 + b01 / a11 + b02 / a21 + b03 / a31
+  result[2] = b00 / a02 + b01 / a12 + b02 / a22 + b03 / a32
+  result[3] = b00 / a03 + b01 / a13 + b02 / a23 + b03 / a33
+  result[4] = b10 / a00 + b11 / a10 + b12 / a20 + b13 / a30
+  result[5] = b10 / a01 + b11 / a11 + b12 / a21 + b13 / a31
+  result[6] = b10 / a02 + b11 / a12 + b12 / a22 + b13 / a32
+  result[7] = b10 / a03 + b11 / a13 + b12 / a23 + b13 / a33
+  result[8] = b20 / a00 + b21 / a10 + b22 / a20 + b23 / a30
+  result[9] = b20 / a01 + b21 / a11 + b22 / a21 + b23 / a31
+  result[10] = b20 / a02 + b21 / a12 + b22 / a22 + b23 / a32
+  result[11] = b20 / a03 + b21 / a13 + b22 / a23 + b23 / a33
+  result[12] = b30 / a00 + b31 / a10 + b32 / a20 + b33 / a30
+  result[13] = b30 / a01 + b31 / a11 + b32 / a21 + b33 / a31
+  result[14] = b30 / a02 + b31 / a12 + b32 / a22 + b33 / a32
+  result[15] = b30 / a03 + b31 / a13 + b32 / a23 + b33 / a33
+
+proc `/`*(m: Mat4, f: float): Mat4 =
+  result = Mat4()
+  result[0] = m[0] / f
+  result[1] = m[1] / f
+  result[2] = m[2] / f
+  result[3] = m[3] / f
+  result[4] = m[4] / f
+  result[5] = m[5] / f
+  result[6] = m[6] / f
+  result[7] = m[7] / f
+  result[8] = m[8] / f
+  result[9] = m[9] / f
+  result[10] = m[10] / f
+  result[11] = m[11] / f
+  result[12] = m[12] / f
+  result[13] = m[13] / f
+  result[14] = m[14] / f
+  result[15] = m[15] / f
+
 proc `*`*(m, n: Mat4): Mat4 =
   let
     a00 = m[0]
@@ -72,6 +276,25 @@ proc `*`*(m, n: Mat4): Mat4 =
   result[13] = b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31
   result[14] = b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32
   result[15] = b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33
+
+proc `*`*(m: Mat4, f: float): Mat4 =
+  result = Mat4()
+  result[0] = m[0] * f
+  result[1] = m[1] * f
+  result[2] = m[2] * f
+  result[3] = m[3] * f
+  result[4] = m[4] * f
+  result[5] = m[5] * f
+  result[6] = m[6] * f
+  result[7] = m[7] * f
+  result[8] = m[8] * f
+  result[9] = m[9] * f
+  result[10] = m[10] * f
+  result[11] = m[11] * f
+  result[12] = m[12] * f
+  result[13] = m[13] * f
+  result[14] = m[14] * f
+  result[15] = m[15] * f
 
 proc `*`*(m: Mat4, v: Vec3): Vec3 =
   let x = m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12]
@@ -245,53 +468,31 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
     dot(x, eye), dot(y, eye), -dot(z, eye), 1
   ]
 
+proc transpose*(m: Mat4): Mat4 =
+# If we are transposing ourselves we can skip a few steps but have to cache some values
+  result = Mat4()
+  result.m[0] = m[0]
+  result.m[4] = m[1]
+  result.m[8] = m[2]
+  result.m[12] = m[3]
 
+  result.m[1] = m[4]
+  result.m[5] = m[5]
+  result.m[9] = m[6]
+  result.m[13] = m[7]
 
+  result.m[2] = m[8]
+  result.m[6] = m[9]
+  result.m[10] = m[10]
+  result.m[14] = m[11]
 
+  result.m[3] = m[12]
+  result.m[7] = m[13]
+  result.m[11] = m[14]
+  result.m[15] = m[15]
 
-# mat4_t mat4_transpose(mat4_t m, mat4_t dest) {
-#     // If we are transposing ourselves we can skip a few steps but have to cache some values
-#     if (!dest || mat == dest) {
-#         double a01 = mat[1], a02 = mat[2], a03 = mat[3],
-#             a12 = mat[6], a13 = mat[7],
-#             a23 = mat[11]
-#
-#         mat[1] = mat[4]
-#         mat[2] = mat[8]
-#         mat[3] = mat[12]
-#         mat[4] = a01
-#         mat[6] = mat[9]
-#         mat[7] = mat[13]
-#         mat[8] = a02
-#         mat[9] = a12
-#         mat[11] = mat[14]
-#         mat[12] = a03
-#         mat[13] = a13
-#         mat[14] = a23
-#         return mat
-#     }
-#
-#     dest[0] = mat[0]
-#     dest[1] = mat[4]
-#     dest[2] = mat[8]
-#     dest[3] = mat[12]
-#     dest[4] = mat[1]
-#     dest[5] = mat[5]
-#     dest[6] = mat[9]
-#     dest[7] = mat[13]
-#     dest[8] = mat[2]
-#     dest[9] = mat[6]
-#     dest[10] = mat[10]
-#     dest[11] = mat[14]
-#     dest[12] = mat[3]
-#     dest[13] = mat[7]
-#     dest[14] = mat[11]
-#     dest[15] = mat[15]
-#     return dest
-# }
-#
 # double mat4_determinant(mat4_t mat) {
-#     // Cache the matrix values (makes for huge speed increases!)
+#     # Cache the matrix values (makes for huge speed increases!)
 #     double a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
 #         a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7],
 #         a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11],
@@ -305,54 +506,62 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #             a20 * a01 * a12 * a33 - a00 * a21 * a12 * a33 - a10 * a01 * a22 * a33 + a00 * a11 * a22 * a33)
 # }
 #
-# mat4_t mat4_inverse(mat4_t mat, mat4_t dest) {
-#     if (!dest) { dest = mat }
-#
-#     // Cache the matrix values (makes for huge speed increases!)
-#     double a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
-#         a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7],
-#         a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11],
-#         a30 = mat[12], a31 = mat[13], a32 = mat[14], a33 = mat[15],
-#
-#         b00 = a00 * a11 - a01 * a10,
-#         b01 = a00 * a12 - a02 * a10,
-#         b02 = a00 * a13 - a03 * a10,
-#         b03 = a01 * a12 - a02 * a11,
-#         b04 = a01 * a13 - a03 * a11,
-#         b05 = a02 * a13 - a03 * a12,
-#         b06 = a20 * a31 - a21 * a30,
-#         b07 = a20 * a32 - a22 * a30,
-#         b08 = a20 * a33 - a23 * a30,
-#         b09 = a21 * a32 - a22 * a31,
-#         b10 = a21 * a33 - a23 * a31,
-#         b11 = a22 * a33 - a23 * a32,
-#
-#         d = (b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06),
-#         invDet
-#
-#         // Calculate the determinant
-#         if (!d) { return NULL }
-#         invDet = 1 / d
-#
-#     dest[0] = (a11 * b11 - a12 * b10 + a13 * b09) * invDet
-#     dest[1] = (-a01 * b11 + a02 * b10 - a03 * b09) * invDet
-#     dest[2] = (a31 * b05 - a32 * b04 + a33 * b03) * invDet
-#     dest[3] = (-a21 * b05 + a22 * b04 - a23 * b03) * invDet
-#     dest[4] = (-a10 * b11 + a12 * b08 - a13 * b07) * invDet
-#     dest[5] = (a00 * b11 - a02 * b08 + a03 * b07) * invDet
-#     dest[6] = (-a30 * b05 + a32 * b02 - a33 * b01) * invDet
-#     dest[7] = (a20 * b05 - a22 * b02 + a23 * b01) * invDet
-#     dest[8] = (a10 * b10 - a11 * b08 + a13 * b06) * invDet
-#     dest[9] = (-a00 * b10 + a01 * b08 - a03 * b06) * invDet
-#     dest[10] = (a30 * b04 - a31 * b02 + a33 * b00) * invDet
-#     dest[11] = (-a20 * b04 + a21 * b02 - a23 * b00) * invDet
-#     dest[12] = (-a10 * b09 + a11 * b07 - a12 * b06) * invDet
-#     dest[13] = (a00 * b09 - a01 * b07 + a02 * b06) * invDet
-#     dest[14] = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet
-#     dest[15] = (a20 * b03 - a21 * b01 + a22 * b00) * invDet
-#
-#     return dest
-# }
+proc inverse*(m:Mat4): Mat4 =
+  # Cache the matrix values (makes for huge speed increases!)
+  result = Mat4()
+  let
+    a00 = m[0]
+    a01 = m[1]
+    a02 = m[2]
+    a03 = m[3]
+    a10 = m[4]
+    a11 = m[5]
+    a12 = m[6]
+    a13 = m[7]
+    a20 = m[8]
+    a21 = m[9]
+    a22 = m[10]
+    a23 = m[11]
+    a30 = m[12]
+    a31 = m[13]
+    a32 = m[14]
+    a33 = m[15]
+
+    b00 = a00 * a11 - a01 * a10
+    b01 = a00 * a12 - a02 * a10
+    b02 = a00 * a13 - a03 * a10
+    b03 = a01 * a12 - a02 * a11
+    b04 = a01 * a13 - a03 * a11
+    b05 = a02 * a13 - a03 * a12
+    b06 = a20 * a31 - a21 * a30
+    b07 = a20 * a32 - a22 * a30
+    b08 = a20 * a33 - a23 * a30
+    b09 = a21 * a32 - a22 * a31
+    b10 = a21 * a33 - a23 * a31
+    b11 = a22 * a33 - a23 * a32
+
+    d = (b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06)
+
+    invDet = 1 / d
+
+  result.m[0] = (a11 * b11 - a12 * b10 + a13 * b09) * invDet
+  result.m[1] = (-a01 * b11 + a02 * b10 - a03 * b09) * invDet
+  result.m[2] = (a31 * b05 - a32 * b04 + a33 * b03) * invDet
+  result.m[3] = (-a21 * b05 + a22 * b04 - a23 * b03) * invDet
+  result.m[4] = (-a10 * b11 + a12 * b08 - a13 * b07) * invDet
+  result.m[5] = (a00 * b11 - a02 * b08 + a03 * b07) * invDet
+  result.m[6] = (-a30 * b05 + a32 * b02 - a33 * b01) * invDet
+  result.m[7] = (a20 * b05 - a22 * b02 + a23 * b01) * invDet
+  result.m[8] = (a10 * b10 - a11 * b08 + a13 * b06) * invDet
+  result.m[9] = (-a00 * b10 + a01 * b08 - a03 * b06) * invDet
+  result.m[10] = (a30 * b04 - a31 * b02 + a33 * b00) * invDet
+  result.m[11] = (-a20 * b04 + a21 * b02 - a23 * b00) * invDet
+  result.m[12] = (-a10 * b09 + a11 * b07 - a12 * b06) * invDet
+  result.m[13] = (a00 * b09 - a01 * b07 + a02 * b06) * invDet
+  result.m[14] = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet
+  result.m[15] = (a20 * b03 - a21 * b01 + a22 * b00) * invDet
+
+
 #
 # mat4_t mat4_toRotationMat(mat4_t mat, mat4_t dest) {
 #     if (!dest) { dest = mat4_create(NULL) }
@@ -394,7 +603,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 # }
 #
 # mat3_t mat4_toInverseMat3(mat4_t mat, mat3_t dest) {
-#     // Cache the matrix values (makes for huge speed increases!)
+#     # Cache the matrix values (makes for huge speed increases!)
 #     double a00 = mat[0], a01 = mat[1], a02 = mat[2],
 #         a10 = mat[4], a11 = mat[5], a12 = mat[6],
 #         a20 = mat[8], a21 = mat[9], a22 = mat[10],
@@ -427,7 +636,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 # mat4_t mat4_multiply(mat4_t mat, mat4_t mat2, mat4_t dest) {
 #     if (!dest) { dest = mat }
 #
-#     // Cache the matrix values (makes for huge speed increases!)
+#     # Cache the matrix values (makes for huge speed increases!)
 #     double a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
 #         a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7],
 #         a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11],
@@ -577,21 +786,21 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #     a10 = mat[4] a11 = mat[5] a12 = mat[6] a13 = mat[7]
 #     a20 = mat[8] a21 = mat[9] a22 = mat[10] a23 = mat[11]
 #
-#     // Construct the elements of the rotation matrix
+#     # Construct the elements of the rotation matrix
 #     b00 = x * x * t + c b01 = y * x * t + z * s b02 = z * x * t - y * s
 #     b10 = x * y * t - z * s b11 = y * y * t + c b12 = z * y * t + x * s
 #     b20 = x * z * t + y * s b21 = y * z * t - x * s b22 = z * z * t + c
 #
 #     if (!dest) {
 #         dest = mat
-#     } else if (mat != dest) { // If the source and destination differ, copy the unchanged last row
+#     } else if (mat != dest) { # If the source and destination differ, copy the unchanged last row
 #         dest[12] = mat[12]
 #         dest[13] = mat[13]
 #         dest[14] = mat[14]
 #         dest[15] = mat[15]
 #     }
 #
-#     // Perform rotation-specific matrix multiplication
+#     # Perform rotation-specific matrix multiplication
 #     dest[0] = a00 * b00 + a10 * b01 + a20 * b02
 #     dest[1] = a01 * b00 + a11 * b01 + a21 * b02
 #     dest[2] = a02 * b00 + a12 * b01 + a22 * b02
@@ -623,7 +832,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #
 #     if (!dest) {
 #         dest = mat
-#     } else if (mat != dest) { // If the source and destination differ, copy the unchanged rows
+#     } else if (mat != dest) { # If the source and destination differ, copy the unchanged rows
 #         dest[0] = mat[0]
 #         dest[1] = mat[1]
 #         dest[2] = mat[2]
@@ -635,7 +844,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #         dest[15] = mat[15]
 #     }
 #
-#     // Perform axis-specific matrix multiplication
+#     # Perform axis-specific matrix multiplication
 #     dest[4] = a10 * c + a20 * s
 #     dest[5] = a11 * c + a21 * s
 #     dest[6] = a12 * c + a22 * s
@@ -662,7 +871,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #
 #     if (!dest) {
 #         dest = mat
-#     } else if (mat != dest) { // If the source and destination differ, copy the unchanged rows
+#     } else if (mat != dest) { # If the source and destination differ, copy the unchanged rows
 #         dest[4] = mat[4]
 #         dest[5] = mat[5]
 #         dest[6] = mat[6]
@@ -674,7 +883,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #         dest[15] = mat[15]
 #     }
 #
-#     // Perform axis-specific matrix multiplication
+#     # Perform axis-specific matrix multiplication
 #     dest[0] = a00 * c + a20 * -s
 #     dest[1] = a01 * c + a21 * -s
 #     dest[2] = a02 * c + a22 * -s
@@ -701,7 +910,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #
 #     if (!dest) {
 #         dest = mat
-#     } else if (mat != dest) { // If the source and destination differ, copy the unchanged last row
+#     } else if (mat != dest) { # If the source and destination differ, copy the unchanged last row
 #         dest[8] = mat[8]
 #         dest[9] = mat[9]
 #         dest[10] = mat[10]
@@ -713,7 +922,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #         dest[15] = mat[15]
 #     }
 #
-#     // Perform axis-specific matrix multiplication
+#     # Perform axis-specific matrix multiplication
 #     dest[0] = a00 * c + a10 * s
 #     dest[1] = a01 * c + a11 * s
 #     dest[2] = a02 * c + a12 * s
@@ -799,18 +1008,18 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #         return mat4_identity(dest)
 #     }
 #
-#     //vec3.direction(eye, center, z)
+#     #vec3.direction(eye, center, z)
 #     z0 = ex - ox
 #     z1 = ey - oy
 #     z2 = ez - oz
 #
-#     // normal (no check needed for 0 because of early return)
+#     # normal (no check needed for 0 because of early return)
 #     len = 1 / sqrt(z0 * z0 + z1 * z1 + z2 * z2)
 #     z0 *= len
 #     z1 *= len
 #     z2 *= len
 #
-#     //vec3.normal(vec3.cross(up, z, x))
+#     #vec3.normal(vec3.cross(up, z, x))
 #     x0 = uy * z2 - uz * z1
 #     x1 = uz * z0 - ux * z2
 #     x2 = ux * z1 - uy * z0
@@ -826,7 +1035,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 #         x2 *= len
 #     }
 #
-#     //vec3.normal(vec3.cross(z, x, y))
+#     #vec3.normal(vec3.cross(z, x, y))
 #     y0 = z1 * x2 - z2 * x1
 #     y1 = z2 * x0 - z0 * x2
 #     y2 = z0 * x1 - z1 * x0
@@ -866,7 +1075,7 @@ proc lookat*(eye, target, up: Vec3): Mat4 =
 # mat4_t mat4_fromRotationTranslation(quat_t quat, vec3_t vec, mat4_t dest) {
 #     if (!dest) { dest = mat4_create(NULL) }
 #
-#     // Quaternion math
+#     # Quaternion math
 #     double x = quat[0], y = quat[1], z = quat[2], w = quat[3],
 #         x2 = x + x,
 #         y2 = y + y,

@@ -1,6 +1,7 @@
 #Written by Aaron Bentley 5/19/15
 #Modules
 import sdl2, opengl, glu, math
+import parser/iqm
 
 #Files
 import globals
@@ -42,7 +43,7 @@ proc init*() =
   glEnable(GL_BLEND)
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glEnable(GL_DEPTH_TEST)
-  glEnable(GL_CULL_FACE)
+  #glEnable(GL_CULL_FACE)
 
   dt = 0.0
 
@@ -64,7 +65,7 @@ z.doClick = buy
 
 proc display() =
   drawScene()
-  panelsDraw()
+  #panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
 proc mouseInput( evt: MouseButtonEventPtr ) =
@@ -98,17 +99,19 @@ proc mouseMotion( evt: MouseMotionEventPtr ) =
 
 #Handles Single Key Input
 proc keyInput( evt: KeyboardEventPtr ) =
-  discard
   #var action = ""
   #case evt.kind
   #of KeyDown: action = "start"
   #of KeyUp: action = "stop"
   #else: action = "else"
-  #case evt.keysym.sym
-  #of K_W: simulator.controlInput("forward", action)
-  #of K_S: simulator.controlInput("back", action)
-  #of K_A: simulator.controlInput("left", action)
-  #of K_D: simulator.controlInput("right", action)
+  case evt.keysym.sym
+  of K_W: camera.pos = vec3(camera.pos[0] + 1.0, camera.pos[1], camera.pos[2])
+  of K_S: camera.pos = vec3(camera.pos[0] - 1.0, camera.pos[1], camera.pos[2])
+  of K_A: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] + 1.0)
+  of K_D: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] - 1.0)
+  of K_SPACE: camera.pos = vec3(camera.pos[0], camera.pos[1] + 1.0, camera.pos[2])
+  of K_LCTRL: camera.pos = vec3(camera.pos[0], camera.pos[1] - 1.0, camera.pos[2])
+  else : discard
   #of K_UP: simulator.controlInput("up", action)
   #of K_DOWN: simulator.controlInput("down", action)
   #of K_LEFT: simulator.controlInput("roll_left", action)
