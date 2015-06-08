@@ -71,19 +71,19 @@ proc trect*( x,y,width,height: float,textureID: GLuint ) =
   glBegin(GL_QUADS)
 
   glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 1,1 )
+  glTexCoord2f( 0,1 )
   glVertex3f( x, y, 0 )
 
   glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 1,0 )
+  glTexCoord2f( 0,0 )
   glVertex3f( x, y + height, 0)
 
   glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 0,0 )
+  glTexCoord2f( 1,0 )
   glVertex3f( x + width, y + height, 0)
 
   glColor4f( dRed, dGreen, dBlue, dAlpha )
-  glTexCoord2f( 0,1 )
+  glTexCoord2f( 1,1 )
   glVertex3f( x + width, y, 0)
 
   glEnd()

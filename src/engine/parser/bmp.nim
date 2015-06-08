@@ -24,7 +24,7 @@ proc parseBmp*(filePath: string): GLuint =
 
     #Here is what we want
 
-  if (open(file, filePath)) :
+  if (open(file, "content/" & filePath)) :
     let fStream = newFileStream(file)
 
     hField = readChar(fStream)
@@ -59,37 +59,43 @@ proc parseBmp*(filePath: string): GLuint =
       if ( i mod (imageWidth*3+padding) <= (imageWidth*3)-1 ) : #-1 because i is zero'd
         tempSeq[index] = readInt8(fStream).uint8 # bitmaps have some padding
         inc(index)
-        # they neeed to be able to be stored in a number of bytes divisible by 4
+
+        # they need to be able to be stored in a number of bytes divisible by 4
         # example 2x2 picture has 6 bytes in the first row, with a padding of 2 and
         # 6 bytes in the second row with a padding of 2
       else :
         discard readInt8(fStream).uint8 # toss the padding byte
       inc(i) # make an array with all the data in it
-
     #unfortunately i don't think we are done.
     #we have all the pixel data, except it isn't usable because its in a slighly
     #different ordering.
 
     var finalSeq = newSeq[uint8]((imageWidth*imageHeight)*4)
-    var j = 0
+    let max = (finalSeq.len/4).int-1
+    for i in 0..max : # this routine correts the data from BGR TO RGBA
+      finalSeq[i*4 + 0] = tempSeq[(max-i)*3 + 2]
+      finalSeq[i*4 + 1] = tempSeq[(max-i)*3 + 1]
+      finalSeq[i*4 + 2] = tempSeq[(max-i)*3 + 0]
+      finalSeq[i*4 + 3] = 255.uint8
 
-    i = 1
+    var finalfinalSeq = newSeq[uint8]((imageWidth*imageHeight)*4)
+    let
+      mh = imageHeight-1
+      mw = imageWidth-1
 
-    while i <= (imageWidth*imageHeight)*4 : # this routine correts the data from
-      if ( i mod 4 > 0 ) :                  # BRG to RGBA
-        if ( tempSeq.len-i+j >= 0 ) :
-          finalSeq[i-1] = tempSeq[tempSeq.len-i+j]
-      else :
-        finalSeq[i-1] = 255
-        inc(j)
-      inc(i)
+    for i in 0..imageHeight-1 :
+      for j in 0..imageWidth-1 :
+        finalfinalSeq[i*imageWidth*4 + j*4 + 0] = finalSeq[i*imageWidth*4 + (mw-j)*4 + 0]
+        finalfinalSeq[i*imageWidth*4 + j*4 + 1] = finalSeq[i*imageWidth*4 + (mw-j)*4 + 1]
+        finalfinalSeq[i*imageWidth*4 + j*4 + 2] = finalSeq[i*imageWidth*4 + (mw-j)*4 + 2]
+        finalfinalSeq[i*imageWidth*4 + j*4 + 3] = finalSeq[i*imageWidth*4 + (mw-j)*4 + 3]
 
     var textureID: GLuint
 
     glGenTextures(1, addr textureID)
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, textureID)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, addr finalSeq[0])
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, addr finalfinalSeq[0])
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -98,6 +104,6 @@ proc parseBmp*(filePath: string): GLuint =
 
     bmpCache[filePath] = textureID
     return textureID
-  else :
-    echo("ERROR: no bmp texture found, returning 0")
-    return 0
+
+  echo("ERROR: " & filePath & " file not found")
+  return 0

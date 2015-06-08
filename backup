@@ -1,0 +1,81 @@
+#########################
+########ANIMATION########
+#########################
+var
+  joints = this.data.joints
+  num_joints = this.data.h.num_joints.int
+  num_poses = this.data.h.num_poses.int
+  num_verts = this.data.h.num_vertexes.int
+  frames = this.data.frames
+  blds = this.data.blendindexes
+  ws = this.data.blendweights
+  numTriangles = this.data.h.num_triangles.int
+  numframes = this.data.h.num_frames.int
+
+  curFrame = this.data.curframe mod numframes #Mod this in the real deal, for the sim we dont need to worry
+  nextFrame = (curFrame + 1) mod numframes
+
+  outframe = newSeq[Mat4](num_joints)
+  outVerts = newSeq[float32](verticies.len)
+  outNorms = newSeq[float32](normals.len)
+
+for i in 0..(num_joints-1) :
+  echo("here")
+  let mat = frames[curFrame * num_joints + i] * (0.5) + frames[nextFrame * num_joints + i] * (0.5)
+
+  if (joints[i].parent >= 0) :
+    outframe[i] = outframe[joints[i].parent] * mat
+  else :
+    outframe[i] = mat
+echo("cry")
+for i in 0..(num_verts-1) :
+  let
+    srcpos = vec3(verticies[i*3],verticies[i*3+1],verticies[i*3+2])
+    srcnorm = vec3(normals[i*3],normals[i*3+1],normals[i*3+2])
+    srctan = quat(tangents[i*4],tangents[i*4+1],tangents[i*4+2],tangents[i*4+3])
+  var
+    dstpos = vec3()
+    dstnorm = vec3()
+    dsttan = vec3()
+    dstbitan = vec3()
+    index: array[0..3,uint8]
+    weight: array[0..3,uint8]
+
+  index = [blds[i*4+0],blds[i*4+1],blds[i*4+2],blds[i*4+3]]
+  weight = [ws[i*4+0],ws[i*4+1],ws[i*4+2],ws[i*4+3]]
+
+  var mat = outframe[index[0].int] * (weight[0].float/255.0)
+  for j in 1..3 :
+    if (weight[j].int > 0) :
+      mat = mat + outframe[index[j].int] * (weight[j].float/255.0)
+  #echo("weights", weight[0]," ", weight[1]," ", weight[2]," ",weight[3])
+
+  dstpos = mat * srcpos
+  var matnorm = mat4(mat.b.cross(mat.c), mat.c.cross(mat.a), mat.a.cross(mat.b))
+  matnorm.m[15] = 1.0 #needs to preserve old data
+
+  dstnorm = matnorm * srcnorm
+  dsttan = matnorm * vec3(srctan[0],srctan[1],srctan[2])
+  dstbitan = dstnorm.cross(dsttan) * srctan.w
+  outVerts[i*3+0] = dstpos[0]
+  outVerts[i*3+1] = dstpos[1]
+  outVerts[i*3+2] = dstpos[2]
+
+  outNorms[i*3+0] = dstnorm[0]
+  outNorms[i*3+1] = dstnorm[1]
+  outNorms[i*3+2] = dstnorm[2]
+
+if (this.data.curframe > this.data.h.num_frames.int) :
+  this.data.curframe = 0
+
+#########################
+
+glActiveTexture(GL_TEXTURE0)
+glBindTexture(GL_TEXTURE_2D, 1)
+glVertexPointer(3, cGL_FLOAT, 0, outVerts[0].addr)
+let pos = glGetAttribLocation(1, "in_position").uint32
+attrib(pos, 3'i32, cGL_FLOAT, outVerts[0].addr)
+glNormalPointer(cGL_FLOAT, 0, outNorms[0].addr)
+attrib(1, 3'i32, cGL_FLOAT, outNorms[0].addr)
+glTexCoordPointer(2, cGL_FLOAT, 0, texCoords[0].addr)
+attrib(2, 2'i32, cGL_FLOAT, texCoords[0].addr

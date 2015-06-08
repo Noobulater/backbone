@@ -26,7 +26,7 @@ type
     channels: cint #internal use
     channel: cint
 
-proc Sound*( filePath: string ): SND = # Creates the sound
+proc Sound*(filePath: string): SND = # Creates the sound
   result = SND()
   result.buffers = 4096 # common example
   result.channels = 2 # stereo, not mono
@@ -36,7 +36,7 @@ proc Sound*( filePath: string ): SND = # Creates the sound
   if (mixer.openAudio(result.rate, result.format, result.channels, result.buffers) != 0) :
     echo("ERROR sound.nim : FAILURE TO OPEN AUDIO")
 
-  result.data = mixer.loadWAV(filePath)
+  result.data = mixer.loadWAV("content/" & filePath)
   if ( result.data == nil ) :
     echo("ERROR sound.nim : SOUND DATA EMPTY")
 

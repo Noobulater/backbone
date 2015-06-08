@@ -1,4 +1,4 @@
-import opengl
+import opengl, math
 import globals, entity
 import engine/glx, engine/camera
 import engine/coords/vector, engine/coords/matrix
@@ -34,7 +34,7 @@ method init*(this: Model): Model =
   discard entity.init(this)
   this
 
-# method update*(this: Model, dt: float) =
+#method update*(this: Model, dt: float) =
 #   procCall entity.update(this, dt)
 
 proc newModel*(): Model = Model().init.track()

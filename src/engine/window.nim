@@ -8,6 +8,8 @@ import globals
 import camera, audio, timer, glx, simulation
 import gui/panel
 import coords/matrix, coords/vector
+import parser/bmp
+import gui/surface
 
 proc resized(width, height: int) =
   scrW = width
@@ -30,7 +32,7 @@ proc limitFrameRate() =
     delay(frameTime - now) # Delay to maintain steady frame rate
   frameTime += targetFramePeriod
 
-
+var txtId: GLuint
 proc init*() =
   #created
   discard sdl2.init(INIT_EVERYTHING)
@@ -43,8 +45,9 @@ proc init*() =
   glEnable(GL_BLEND)
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glEnable(GL_DEPTH_TEST)
-  #glEnable(GL_CULL_FACE)
-
+  glEnable(GL_CULL_FACE)
+  glFrontFace(GL_CW)
+  txtId = parseBmp("bmps/notbadd.bmp")
   dt = 0.0
 
   simulation.init()
@@ -58,14 +61,21 @@ proc update(dt: float) =
   simulation.update(dt)
 
 var z = newPanel(0,0,100,100)
-let sound = Sound("content/whatayabuyin.wav")
+let sound = Sound("sound/whatayabuyin.wav")
+
 proc buy(button: int, pressed: bool, x,y: float) =
   sound.play()
 z.doClick = buy
 
+proc drurr(x,y,width,height: float) =
+  setColor(255, 255, 255, 255)
+  trect(x, y, width, height, txtId)
+
+z.drawFunc = drurr
+
 proc display() =
   drawScene()
-  #panelsDraw()
+  panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
 proc mouseInput( evt: MouseButtonEventPtr ) =

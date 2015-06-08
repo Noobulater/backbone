@@ -14,6 +14,7 @@ var
   paused* = false
   alive* = true
   curTime* = getTime # current time counter
+  curTicks* = getTicks
 
 # Convience functions for sequences
 proc get*[T](m: seq[T], gEntry: T): int =
@@ -28,3 +29,13 @@ proc remove*[T](m: seq[T], rIndex: int) =
 proc remove*[T](m: seq[T], rEntry: T) =
   let x = m.get(rEntry)
   m.remove(x.Natural)
+
+proc strAtIndex*(input: string, index: int) : string =
+  result = ""
+  var i = index
+  var curChar = input[i]
+  while (curChar != '\0') :
+    curChar = input[i]
+    if (curChar != '\0') :
+      result = result & $curChar
+      inc(i)

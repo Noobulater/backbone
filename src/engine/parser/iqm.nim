@@ -5,16 +5,20 @@
 import opengl, endians, streams
 import engine/coords/quat, engine/coords/matrix, engine/coords/vector
 
+let
+  IQM_MAGIC = "INTERQUAKEMODEL" & '\0'
+  IQM_VERSION = 2
+
 type
   header* = object
-    magic : array[0..15, char] #the string "INTERQUAKEMODEL\0", 0 terminated
+    magic: string#magic : array[0..15, char] #the string "INTERQUAKEMODEL\0", 0 terminated
     version : uint # must be version 1
     filesize: uint
     flags: uint
     num_text*, ofs_text: uint
     num_meshes*, ofs_meshes: uint
     num_vertexarrays*, num_vertexes*, ofs_vertexarrays: uint
-    num_triangles*, ofs_triangles, ofs_adjacency*: uint
+    num_triangles*, ofs_triangles, ofs_adjacency: uint
     num_joints*, ofs_joints: uint
     num_poses*, ofs_poses: uint
     num_anims*, ofs_anims: uint
@@ -30,6 +34,7 @@ type
     material*: uint  # set to a name of a non-unique material or texture
     first_vertex*, num_vertexes*: uint
     first_triangle*, num_triangles*: uint
+    actualTex*: GLuint # this is temporary
 
 # all vertex array entries must ordered as defined below, if present
 # i.e. position comes before normal comes before ... comes before custom
@@ -136,7 +141,7 @@ type
     blendweights*: seq[uint8]
     colors*: seq[uint8]
 
-    textures: seq[GLuint]
+    text*: string
 
     joints*: seq[joint]
     poses*: seq[pose]
@@ -147,11 +152,10 @@ type
     inverseframes*: seq[Mat4]
     frames*: seq[Mat4]
 
-    curframe*: int
-
-proc iqmLoadHeader(fs: FileStream) : header =
-  for i in low(result.magic)..high(result.magic) :
-    result.magic[i] = fs.readChar()
+proc iqmLoadHeader(fs: FileStream): header =
+  result.magic = ""
+  for i in 0..15: #low(result.magic)..high(result.magic) :
+    result.magic = result.magic & fs.readChar()
 
   result.version = fs.readInt32().uint
   result.filesize = fs.readInt32().uint
@@ -185,7 +189,21 @@ proc iqmLoadHeader(fs: FileStream) : header =
   result.num_extensions = fs.readInt32().uint
   result.ofs_extensions = fs.readInt32().uint # these are stored as a linked list, not as a contiguous array
 
-proc loadVAO(fs: FileStream, data: var iqmData) =
+proc loadVAO(fs: FileStream, data: var iqmData): bool = #VAO -> Vertex Array Object
+  # SO, NOW WE ARE AT THE VERTEX ARRAY OBJECT
+  # WE NEED TO COLLECT AN ARRAY OF VERTEXARRAY OBJECTS
+  # THERE IS A VARIABLE AMOUNT OF THEM.
+  # We could potentially use all this data, so lets initialize it all so we have space
+  data.verticies = newSeq[float32](data.h.num_vertexes.int*3)
+  data.indicies = newSeq[int32](data.h.num_triangles.int*3)
+  data.normals = newSeq[float32](data.h.num_vertexes.int*3)
+  data.texCoords = newSeq[float32](data.h.num_vertexes.int*2)
+  data.tangents = newSeq[float32](data.h.num_vertexes.int*4)
+
+  data.blendindexes = newSeq[uint8](data.h.num_vertexes.int*4)
+  data.blendweights = newSeq[uint8](data.h.num_vertexes.int*4)
+  data.colors = newSeq[uint8](data.h.num_vertexes.int*4)
+
   #jump to the vertex arrays
   fs.setPosition(data.h.ofs_vertexarrays.int)
   var
@@ -203,37 +221,38 @@ proc loadVAO(fs: FileStream, data: var iqmData) =
     case va.form :
     of IQM.POSITION.uint :
       if (va.format.int != cIQM.FLOAT.int or va.size.int != 3) :
-        continue
+        echo("ERROR: POSITIONS MALFORMED")
+        return false
       #Jump to Vertexes
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*3)-1 :
         data.verticies[i] = fs.readFloat32()
-        #echo(data.verticies[i])
       fs.setPosition(curPosition)
 
     of IQM.TEXCOORD.uint :
       if (va.format.int != cIQM.FLOAT.int or va.size.int != 2) :
-        continue
+        echo("ERROR: TEXCOORDS MALFORMED")
+        return false
       #Jump to Tex Coords
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*2)-1 :
         data.texCoords[i] = fs.readFloat32()
-        #echo(data.texCoords[i])
       fs.setPosition(curPosition)
 
     of IQM.NORMAL.uint :
-      if (va.format.int != cIQM.FLOAT.int or va.size.int != 4) :
-        continue
+      if (va.format.int != cIQM.FLOAT.int or va.size.int != 3) :
+        echo("ERROR: NORMALS MALFORMED")
+        return false
       #Jump to Normals
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*3)-1 :
         data.normals[i] = fs.readFloat32()
-        #echo(data.normals[i])
       fs.setPosition(curPosition)
 
     of IQM.TANGENT.uint :
-      if (va.format.int != cIQM.FLOAT.int or va.size.int != 3) :
-        continue
+      if (va.format.int != cIQM.FLOAT.int or va.size.int != 4) :
+        echo("ERROR: TANGENTS MALFORMED")
+        return false
       #Jump to Tangents
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*4)-1 :
@@ -241,7 +260,8 @@ proc loadVAO(fs: FileStream, data: var iqmData) =
       fs.setPosition(curPosition)
     of IQM.BLENDINDEXES.uint :
       if (va.format.int != cIQM.UBYTE.int or va.size.int != 4) :
-        continue
+        echo("ERROR: BLENDINDEXES MALFORMED")
+        return false
       #Jump to BlendINDEXES
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*4)-1 :
@@ -249,7 +269,8 @@ proc loadVAO(fs: FileStream, data: var iqmData) =
       fs.setPosition(curPosition)
     of IQM.BLENDWEIGHTS.uint :
       if (va.format.int != cIQM.UBYTE.int or va.size.int != 4) :
-        continue
+        echo("ERROR: BLENDWEIGHTS MALFORMED")
+        return false
       #Jump to blendweights
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*4)-1 :
@@ -257,7 +278,8 @@ proc loadVAO(fs: FileStream, data: var iqmData) =
       fs.setPosition(curPosition)
     of IQM.COLOR.uint :
       if(va.format.int != cIQM.UBYTE.int or va.size.int != 4) :
-        continue
+        echo("ERROR: COLORS MALFORMED")
+        return false
       #Jump to colors
       fs.setPosition(va.offset.int)
       for i in 0..((data.h.num_vertexes.int)*4)-1 :
@@ -266,13 +288,15 @@ proc loadVAO(fs: FileStream, data: var iqmData) =
     else :
       discard
 
+  return true #success
+
 proc loadTris(fs: FileStream, data: var iqmData) =
   fs.setPosition(data.h.ofs_triangles.int)
   for i in 0..data.h.num_triangles.int*3-1 :
     data.indicies[i] = fs.readInt32()
 
 proc loadMeshes(fs: FileStream, data: var iqmData) =
-  let n = data.h.num_meshes.int #number of meshse
+  let n = data.h.num_meshes.int #number of meshs
   data.meshes = newSeq[mesh](n) #initialize it here to save cycles
   # there could be some vertex corruption, so if that is teh case we don't want
   # to initialize for nothing
@@ -287,34 +311,31 @@ proc loadMeshes(fs: FileStream, data: var iqmData) =
     data.meshes[i].first_triangle = fs.readInt32().uint
     data.meshes[i].num_triangles = fs.readInt32().uint
 
-proc loadTextures(fs: FileStream, data: var iqmData) =
-  let n = data.h.num_meshes.int #number of meshse
-  #data.meshes = newSeq[mesh](n) #initialize it here to save cycles
+proc loadText(fs: FileStream, data: var iqmData) =
+  # initialize our data
+  data.text = ""
+  let n = data.h.num_text.int #number of meshs
 
   fs.setPosition(data.h.ofs_text.int)
   for i in 0..(n-1) :
-    data.textures[i] = GLuint(fs.readInt32())
+    data.text = data.text & fs.readChar()
 
-proc loadIQM(fs: FileStream, data: var iqmData) =
-  #124 is the number of bytes in the header
-  #we are doing this in one pass, so we need to account for every read
-  #var i = 0
-  #while i < data.h.ofs_vertexarrays.int-fs.getPosition() : #jump right to the vertex arrays
-  #  discard fs.readChar() # jump to the actual image data
-  #  inc(i)
 
-  # SO, NOW WE ARE AT THE VERTEX ARRAY OBJECT
-  # WE NEED TO COLLECT AN ARRAY OF VERTEXARRAY OBJECTS
-  # THERE IS A VARIABLE AMOUNT OF THEM.
-
-  loadVAO(fs, data)
+proc loadIQM(fs: FileStream, data: var iqmData): bool =
+  if (not loadVAO(fs, data)) :
+    return false
+  # the following don't have any error checking
+  loadText(fs, data)
   loadMeshes(fs, data) # do this after vertexes because less cylces if data corrupted
-  loadTextures(fs, data)
   loadTris(fs, data)
+  return true
   #We are at the start of the triangles now
 
 proc loadJoints(fs: FileStream, data: var iqmData) =
-  let n = data.h.num_joints.int #number of meshse
+  #Initialize our data
+  data.joints = newSeq[joint](data.h.num_joints)
+
+  let n = data.h.num_joints.int #number of meshes
   fs.setPosition(data.h.ofs_joints.int)
   for i in 0..(n-1) :
     data.joints[i] = joint()
@@ -339,6 +360,8 @@ proc loadJoints(fs: FileStream, data: var iqmData) =
       data.inverseframes[i] = data.inverseframes[i] * data.inverseframes[data.joints[i].parent]
 
 proc loadPoses(fs: FileStream, data: var iqmData) =
+  # initialize our data
+  data.poses = newSeq[pose](data.h.num_poses)
   let n = data.h.num_poses.int #number of meshes
   fs.setPosition(data.h.ofs_poses.int)
   for i in 0..(n-1) :
@@ -350,30 +373,13 @@ proc loadPoses(fs: FileStream, data: var iqmData) =
     for j in 0..9 :
       data.poses[i].channelscale[j] = fs.readFloat32()
 
-proc loadIQMAnims(fs: FileStream, data: var iqmData) =
-  let n = data.h.num_anims.int #number of meshse
-  fs.setPosition(data.h.ofs_anims.int)
-  for i in 0..(n-1) :
-    data.anims[i] = anim()
-    data.anims[i].name = fs.readInt32().uint
-    data.anims[i].first_frame = fs.readInt32().uint
-    data.anims[i].num_frames = fs.readInt32().uint
-    data.anims[i].framerate = fs.readFloat32()
-    data.anims[i].flags = fs.readInt32().uint
-
-  loadJoints(fs, data)
-  loadPoses(fs, data)
-  #OKAY, now we need to correct the animations and adjust for scale
-  #and things of the like
-  #reCalcAnims(data)
-  var p: pose
+proc reCalcAnims(fs: FileStream, data: var iqmData) =
   var
+    p: pose
     rotate: Quat
     translate, scale: Vec3
 
   fs.setPosition(data.h.ofs_frames.int)
-  #echo(data.h.num_poses)
-  #data.h.num_poses = 45
   var count  = 0
   for i in 0..(data.h.num_frames.int-1) :
     for j in 0..(data.h.num_poses.int-1) :
@@ -417,47 +423,67 @@ proc loadIQMAnims(fs: FileStream, data: var iqmData) =
       else :
         data.frames[index] = m * data.inverseframes[j]
 
+proc loadIQMAnims(fs: FileStream, data: var iqmData): bool =
+  # init
+  if (data.h.num_poses.int != data.h.num_joints.int) :
+    return false
+
+  data.anims = newSeq[anim](data.h.num_anims)
+  let n = data.h.num_anims.int #number of meshs
+  fs.setPosition(data.h.ofs_anims.int)
+  for i in 0..(n-1) :
+    data.anims[i] = anim()
+    data.anims[i].name = fs.readInt32().uint
+    data.anims[i].first_frame = fs.readInt32().uint
+    data.anims[i].num_frames = fs.readInt32().uint
+    data.anims[i].framerate = fs.readFloat32()
+    data.anims[i].flags = fs.readInt32().uint
+
+  data.baseframes = newSeq[Mat4](data.h.num_joints)
+  data.inverseframes = newSeq[Mat4](data.h.num_joints)
+  data.frames = newSeq[Mat4](data.h.num_frames.int*data.h.num_poses.int)
+  loadJoints(fs, data)
+  loadPoses(fs, data)
+  #OKAY, now we need to correct the animations and adjust for scale
+  #and things of the like
+  #We might use reCalcAnims in realtime, so we don't want
+  #to initialize ^ in the function, it would be redundant
+  reCalcAnims(fs, data)
+
+  return true
+
 proc parseIQM*(filePath: string): iqmData =
   var file: File
-  if (open(file, filePath)) :
-    var fs = newFileStream(file)
-    var r = iqmData()
-    r.h = iqmLoadHeader(fs)
-    r.verticies = newSeq[float32](r.h.num_vertexes.int*3)
-    r.indicies = newSeq[int32](r.h.num_triangles.int*3)
-    r.normals = newSeq[float32](r.h.num_vertexes.int*3)
-    r.texCoords = newSeq[float32](r.h.num_vertexes.int*2)
-    r.tangents = newSeq[float32](r.h.num_vertexes.int*4)
-
-    r.blendindexes = newSeq[uint8](r.h.num_vertexes.int*4)
-    r.blendweights = newSeq[uint8](r.h.num_vertexes.int*4)
-    r.colors = newSeq[uint8](r.h.num_vertexes.int*4)
-
-    r.textures = newSeq[GLuint](r.h.num_text)
-
-    r.joints = newSeq[joint](r.h.num_joints)
-    r.poses = newSeq[pose](r.h.num_poses)
-    r.anims = newSeq[anim](r.h.num_anims)
-    r.boundries = newSeq[bounds](r.h.num_anims)
-
-    r.baseframes = newSeq[Mat4](r.h.num_joints)
-    r.inverseframes = newSeq[Mat4](r.h.num_joints)
-    r.frames = newSeq[Mat4](r.h.num_frames.int*r.h.num_poses.int)
-
-    loadIQM(fs, r)
-    loadIQMAnims(fs, r)
-
-    r.curframe = 0 # start at the begining of the animation
+  if (open(file, "content/" & filePath)) :
+    var
+      fs = newFileStream(file)
+      data: iqmData
+      header = iqmLoadHeader(fs)
 
     #MODEL ERRORS
-    #if (header.version != IQM_VERSION) :
-    #if (header.num_meshes <= 0) :
-    #if (header.num_anims <= 0) :
+    if (header.version.int != IQM_VERSION) :
+      echo("ERROR: <" & filePath & "> INCORRECT IQM VERSION")
+      return iqmData()
+    if (header.magic != IQM_MAGIC) :
+      echo("ERROR: <" & filePath & "> HEADER FAILED MAGIC CHECK")
+      return iqmData()
+    if (header.filesize.int > (16 shl 20)) :
+      echo("ERROR: <" & filePath & "> FILE SIZE EXCEEDS MAX")
+      return iqmData()
+    #data.boundries = newSeq[bounds](data.h.num_anims)
+    # initialize it after we have checked to make sure that
+    # no errors exist in the header
+    data = iqmData()
+    data.h = header
+    if (header.num_meshes.int > 0 and not loadIQM(fs, data) ) :
+      echo("ERROR: <" & filePath & "> ERROR LOADING MESHES")
+    if (header.num_anims.int > 0 and not loadIQMAnims(fs, data)) :
+      echo("ERROR: <" & filePath & "> NO BASE ANIM")
 
     close(fs)
-    return r
-  else :
-    echo("ERROR: no iqm file found, returning 0")
-    return iqmData()
+    return data
 
-discard parseIQM("content/mrfixit.iqm")
+  echo("ERROR: " & filePath & " file not found")
+  return iqmData()
+
+#discard parseIQM("content/mrfixit.iqm")
