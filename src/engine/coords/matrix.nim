@@ -1,4 +1,5 @@
-#Written by Matt Nichols
+#Written by Aaron Bentley
+#Contributions/Base Code by Matt Nichols
 import math, complex
 import opengl
 import vector, quat
@@ -116,6 +117,11 @@ proc `a`*(m: Mat4): Vec3 = vec3(m.m[0],m.m[4],m.m[8])
 proc `b`*(m: Mat4): Vec3 = vec3(m.m[1],m.m[5],m.m[9])
 proc `c`*(m: Mat4): Vec3 = vec3(m.m[2],m.m[6],m.m[10])
 proc `d`*(m: Mat4): Vec3 = vec3(m.m[3],m.m[7],m.m[11])
+
+proc `x`*(m: Mat4): Vec3 = vec3(m.m[0],m.m[1],m.m[2])
+proc `y`*(m: Mat4): Vec3 = vec3(m.m[4],m.m[5],m.m[6])
+proc `z`*(m: Mat4): Vec3 = vec3(m.m[8],m.m[9],m.m[10])
+proc `w`*(m: Mat4): Vec3 = vec3(m.m[12],m.m[13],m.m[14])
 
 proc `+`*(m, n: Mat4): Mat4 =
   result = Mat4()
@@ -397,6 +403,7 @@ proc rotate*(m: Mat4, angle: float32, axis: Vec3): Mat4 =
     m[14],
     m[15]
   ]
+
   # result[0] = m[0] * r00 + m[1] * r01 + m[2] * r02
   # result[1] = m[0] * r10 + m[1] * r11 + m[2] * r12
   # result[2] = m[0] * r20 + m[1] * r21 + m[2] * r22
@@ -446,6 +453,51 @@ proc rotate*(m: Mat4, angle: float32, axis: Vec3): Mat4 =
   # result[9] = a01 * b20 + a11 * b21 + a21 * b22
   # result[10] = a02 * b20 + a12 * b21 + a22 * b22
   # result[11] = a03 * b20 + a13 * b21 + a23 * b22
+
+#proc rotateXYZ*(a: Mat4, angles: Vec3) : Mat4 =
+#  let
+#    phi = angles.p * PI / 180.0
+#    theta = angles.y * PI / 180.0
+#    sie = angles.r * PI / 180.0
+#    a00 = m[0]
+#    a01 = m[1]
+#    a02 = m[2]
+#    a03 = m[3]
+#    a10 = m[4]
+#    a11 = m[5]
+#    a12 = m[6]
+#    a13 = m[7]
+#    a20 = m[8]
+#    a21 = m[9]
+#    a22 = m[10]
+#    a23 = m[11]
+#    a30 = m[12]
+#    a31 = m[13]
+#    a32 = m[14]
+#    a33 = m[15]
+
+#  result = Mat4()
+  # Perform rotation-specific matrix multiplication
+#  result.m = [
+#    float32 a00 * r00 + a10 * r01 + a20 * r02,
+#    a01 * r00 + a11 * r01 + a21 * r02,
+#    a02 * r00 + a12 * r01 + a22 * r02,
+#    a03 * r00 + a13 * r01 + a23 * r02,
+#
+#    a00 * r10 + a10 * r11 + a20 * r12,
+#    a01 * r10 + a11 * r11 + a21 * r12,
+#    a02 * r10 + a12 * r11 + a22 * r12,
+#    a03 * r10 + a13 * r11 + a23 * r12,
+#
+#    a00 * r20 + a10 * r21 + a20 * r22,
+#    a01 * r20 + a11 * r21 + a21 * r22,
+#    a02 * r20 + a12 * r21 + a22 * r22,
+#    a03 * r20 + a13 * r21 + a23 * r22,
+#    m[12],
+#    m[13],
+#    m[14],
+#    m[15]
+#  ]  
 
 proc xspace*(view: Mat4): Vec3 = vec3(view[0], view[1], view[2])
 proc yspace*(view: Mat4): Vec3 = vec3(view[4], view[5], view[6])

@@ -120,6 +120,19 @@ proc minValue*(a: Vec3): float =
     if (a[i] < result) :
       result = a[i]
 
+proc dSquared*(a,b: Vec3): float = #cheap af
+  let r = (b - a)*(b - a)
+  return r.x + r.y + r.z
+
+proc distance*(a,b: Vec3): float =
+  return sqrt(dSquared(a,b))
+
+proc abs*(a: Vec3): Vec3 =
+  result = vec3(a[0],a[1],a[2])
+  for i in 0..high(a.d) : #skip the first compare to save cylces
+    if (a[i] < 0) :
+      result[i] = a[i] * -1
+
 when isMainModule:
   proc test(cond: bool, name: string) =
     if (cond): echo("  PASSED: " & name)

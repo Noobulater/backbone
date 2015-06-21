@@ -7,8 +7,8 @@ proc getTime(): float =
   return getTicks().float/1000
 
 var
-  scrW* = 640
-  scrH* = 480
+  scrW* = 1024
+  scrH* = 640
   windowTitle* = "Backbone - Engine"
   tickRate* = 64
   paused* = false

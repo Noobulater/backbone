@@ -75,7 +75,7 @@ z.drawFunc = drurr
 
 proc display() =
   drawScene()
-  panelsDraw()
+  #panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
 proc mouseInput( evt: MouseButtonEventPtr ) =
@@ -107,6 +107,7 @@ proc mouseMotion( evt: MouseMotionEventPtr ) =
   #if (not mainmenu.cursor):
   setViewAngle(max(min(camera.ang.p + evt.yrel.float * camSpeed * dt, 89.9), -89.9), camera.ang.y + evt.xrel.float * camSpeed * dt)
 
+let movespeed = 0.2
 #Handles Single Key Input
 proc keyInput( evt: KeyboardEventPtr ) =
   #var action = ""
@@ -115,12 +116,12 @@ proc keyInput( evt: KeyboardEventPtr ) =
   #of KeyUp: action = "stop"
   #else: action = "else"
   case evt.keysym.sym
-  of K_W: camera.pos = vec3(camera.pos[0] + 1.0, camera.pos[1], camera.pos[2])
-  of K_S: camera.pos = vec3(camera.pos[0] - 1.0, camera.pos[1], camera.pos[2])
-  of K_A: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] + 1.0)
-  of K_D: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] - 1.0)
-  of K_SPACE: camera.pos = vec3(camera.pos[0], camera.pos[1] + 1.0, camera.pos[2])
-  of K_LCTRL: camera.pos = vec3(camera.pos[0], camera.pos[1] - 1.0, camera.pos[2])
+  of K_W: camera.pos = vec3(camera.pos[0] + movespeed, camera.pos[1], camera.pos[2])
+  of K_S: camera.pos = vec3(camera.pos[0] - movespeed, camera.pos[1], camera.pos[2])
+  of K_A: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] + movespeed)
+  of K_D: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] - movespeed)
+  of K_SPACE: camera.pos = vec3(camera.pos[0], camera.pos[1] + movespeed, camera.pos[2])
+  of K_LCTRL: camera.pos = vec3(camera.pos[0], camera.pos[1] - movespeed, camera.pos[2])
   else : discard
   #of K_UP: simulator.controlInput("up", action)
   #of K_DOWN: simulator.controlInput("down", action)

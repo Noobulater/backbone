@@ -131,7 +131,7 @@ type Mesh* = ref object of Resource
   outFrame*: seq[Mat4]
   outVerts*, outNorms*: seq[float32]
   lastTime: float # internal use
-
+  currentAnim: int
 
 method calcAnim*(this: Mesh) =
   var
@@ -148,9 +148,10 @@ method calcAnim*(this: Mesh) =
     blds = this.data.blendindexes
     ws = this.data.blendweights
     numTriangles = this.data.h.num_triangles.int
-    numFrames = this.data.h.num_frames.int
+    numFrames = this.data.anims[this.currentAnim].num_frames.int
     curFrame = this.curFrame mod numFrames
     nextFrame = (curFrame + 1) mod numFrames
+    firstFrame = this.data.anims[this.currentAnim].first_frame.int
     blend = this.blend # completely use the second frame
     outFrame = this.outFrame
     outVerts = this.outVerts
@@ -158,7 +159,7 @@ method calcAnim*(this: Mesh) =
 
   # If its a different frame we need to recalculate
   for i in 0..(num_joints-1) :
-    let mat = frames[curFrame * num_joints + i] * (1-blend) + frames[nextFrame * num_joints + i] * blend
+    let mat = frames[firstFrame + curFrame * num_joints + i] * (1-blend) + frames[firstFrame + nextFrame * num_joints + i] * blend
 
     if (joints[i].parent >= 0) :
       outFrame[i] = outFrame[joints[i].parent] * mat
@@ -261,69 +262,66 @@ method destroy*(this: Mesh) =
   this.stop()
   glDeleteVertexArrays(1, this.handle.addr)
 
-var pbr = 0.0
 proc initMesh*(filePath: string, program: uint32): Mesh =
-  if (find(filePath, ".iqm") > 0) :
-    result = Mesh()
+  result = Mesh()
 
-    var
-      data = parseIQM(filePath)
-      triangles = (data.h.num_triangles.int*3).int32
-      vertexes = data.h.num_vertexes.int32
-      normalCount = data.h.num_vertexes.int32
-      textureCount = 0
-      indicies = data.indicies
-      verticies = data.verticies
-      normals = data.normals
-      texCoords = data.texCoords
-      vao = GLuint(0) # if not static this will remain 0
+  var
+    data = parseIQM(filePath)
+    triangles = (data.h.num_triangles.int*3).int32
+    vertexes = data.h.num_vertexes.int32
+    normalCount = data.h.num_vertexes.int32
+    textureCount = 0
+    indicies = data.indicies
+    verticies = data.verticies
+    normals = data.normals
+    texCoords = data.texCoords
+    vao = GLuint(0) # if not static this will remain 0
 
-    result.playRate = 0.0
+  result.playRate = 0.0
 
-    for i in 0..high(data.meshes) :
-      let index = data.meshes[i].material.int
-      if (index > 0) :
-        var path = strAtIndex(data.text, index)
-        if (find(path, ".tga") > 0) :
-          path = replace(path, ".tga", "")
-        if (find(path, ".bmp") <= 0) :
-          path = path & ".bmp"
-        path = "materials/" & replace(filePath, ".iqm", "") & "/" & path
-        data.meshes[i].actualTex = parseBmp(path)
+  for i in 0..data.meshes.len-1 :
+    let index = data.meshes[i].material.int
+    if (index > 0) :
+      var path = strAtIndex(data.text, index)
+      if (find(path, ".tga") > 0) :
+        path = replace(path, ".tga", "")
+      if (find(path, ".bmp") <= 0) :
+        path = path & ".bmp"
+      path = "materials/" & replace(filePath, ".iqm", "") & "/" & path
+      data.meshes[i].actualTex = parseBmp(path)
 
-    if (data.h.num_anims.int < 1) :
-      # STATIC OBJECTS ONLY
-      vao = bufferArray()
-      if (triangles > 0) :
-        discard buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32).int32 * indicies.len.int32, indicies[0].addr)
+  if (data.h.num_anims.int < 1) :
+    # STATIC OBJECTS ONLY
+    vao = bufferArray()
+    if (triangles > 0) :
+      discard buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32).int32 * indicies.len.int32, indicies[0].addr)
 
-      if (vertexes > 0) :
-        discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, verticies[0].addr)
-        let pos = glGetAttribLocation(program, "in_position").uint32
-        attrib(pos, 3'i32, cGL_FLOAT)
+    if (vertexes > 0) :
+      discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, verticies[0].addr)
+      let pos = glGetAttribLocation(program, "in_position").uint32
+      attrib(pos, 3'i32, cGL_FLOAT)
 
-      if (normalCount > 0) :
-        discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, normals[0].addr)
-        #let pos = glGetAttribLocation(program, "in_normal").uint32
-        attrib(1, 3'i32, cGL_FLOAT)
+    if (normalCount > 0) :
+      discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, normals[0].addr)
+      #let pos = glGetAttribLocation(program, "in_normal").uint32
+      attrib(1, 3'i32, cGL_FLOAT)
 
-      if (true) : # assuming everything is textured
-        discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*2).int32, texCoords[0].addr)
-        #let pos = glGetAttribLocation(program, "in_uv").uint32
-        attrib(2, 2'i32, cGL_FLOAT)
-      result.handle = vao
-      result.data = data
-    else :
-      result.playRate = 1.0 # 30 frames per second
-      result.curFrame = 0
-      result.blend = 0.0
-      result.outFrame = newSeq[Mat4](data.h.num_joints)
-      result.outVerts = newSeq[float32](verticies.len)
-      result.outNorms = newSeq[float32](normals.len)
-      result.lastTime = curTime()
-      result.handle = vao
-      result.data = data
-      calcAnim(result)
+    if (true) : # assuming everything is textured
+      discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*2).int32, texCoords[0].addr)
+      #let pos = glGetAttribLocation(program, "in_uv").uint32
+      attrib(2, 2'i32, cGL_FLOAT)
+    result.handle = vao
+    result.data = data
   else :
-    echo("ERROR: " & filePath & " IQM MODELS ONLY SUPPORTED")
-    return nil
+    result.playRate = 1.0 # 30 frames per second
+    result.curFrame = 0
+    result.blend = 0.0
+    result.outFrame = newSeq[Mat4](data.h.num_joints)
+    result.outVerts = newSeq[float32](verticies.len)
+    result.outNorms = newSeq[float32](normals.len)
+    result.lastTime = curTime()
+    result.currentAnim = 0
+    result.handle = vao
+    result.data = data
+    calcAnim(result)
+  return result

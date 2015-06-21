@@ -1,4 +1,5 @@
 #Written by Matt Nichols
+#Contributions by Aaron Bentley
 import globals
 import engine/coords/matrix, engine/coords/vector
 
@@ -9,14 +10,14 @@ type
     angle*: Vec3
 
     scale*: Vec3
-    matrix*: Mat4
+    matrix*, rot*: Mat4
     parent*: Entity
     #physics
     angleVel*: Vec3
     vel*: Vec3
     gravity*: float
     drag*: float # how quickly an objects velocity decays
-    lmin*,lmax*: Vec3 # axis aligned bounding box : local min, local max
+    obbc*, lmin*,lmax*: Vec3 # axis aligned bounding box : obbCenter, local min, local max
 
 var entities* = newSeq[Entity]()
 
@@ -33,12 +34,14 @@ method untrack*(this: Entity) =
 
 # Recalculates the transform matrix.
 method calcMatrix*(this: Entity) =
+  this.rot = identity()
+  this.rot = this.rot.rotate(this.angle[2], vec3(0, 0, 1))
+  this.rot = this.rot.rotate(this.angle[1], vec3(0, 1, 0))
+  this.rot = this.rot.rotate(this.angle[0], vec3(1, 0, 0))
   this.matrix = identity()
   this.matrix = this.matrix.translate(this.pos)
+  this.matrix = this.matrix * this.rot
   this.matrix = this.matrix.scale(this.scale)
-  this.matrix = this.matrix.rotate(this.angle[2], vec3(0, 0, 1))
-  this.matrix = this.matrix.rotate(this.angle[1], vec3(0, 1, 0))
-  this.matrix = this.matrix.rotate(this.angle[0], vec3(1, 0, 0))
 
 # Sets the pos of the entity
 method setPos*(this: Entity, v: Vec3) =
@@ -83,15 +86,3 @@ method setGravity*(this: Entity, g: float) =
 
 method setDrag*(this: Entity, d: float) =
   this.drag = d
-
-method intersect*(this, that:Entity): bool =
-  let
-    #min = this.lmin + this.pos
-    #max = this.lmax + this.pos
-    #tmin = that.lmin + that.pos
-    #tmax = that.lmax + that.pos
-    dist1 = (this.lmin + this.pos) - (that.lmax + that.pos)
-    dist2 = (that.lmin + that.pos) - (this.lmax + this.pos)
-    distance = max(dist1,dist2)
-    #maxValue = distance.maxValue()
-  return (distance.maxValue() < 0)

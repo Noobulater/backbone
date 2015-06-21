@@ -102,15 +102,15 @@ type
     DOUBLE = 8
   #frames[] # frames is a big unsigned short array where each group of framechannels components is one frame
 
-  anim = object
-    name: uint
-    first_frame, num_frames: uint
-    framerate: float
-    flags: uint
+  anim* = object
+    name*: uint
+    first_frame*, num_frames*: uint
+    framerate*: float
+    flags*: uint
 
-  bounds = object
-    bbmins, bbmaxs: array[0..2, float] # the minimum and maximum coordinates of the bounding box for this animation frame
-    xyradius, radius: float # the circular radius in the X-Y plane, as well as the spherical radius
+  bounds* = object
+    bbmins*, bbmaxs*: array[0..2, float] # the minimum and maximum coordinates of the bounding box for this animation frame
+    xyradius*, radius*: float # the circular radius in the X-Y plane, as well as the spherical radius
 
 #char text[] # big array of all strings, each individual string being 0 terminated
 #char comment[]
@@ -146,7 +146,7 @@ type
     joints*: seq[joint]
     poses*: seq[pose]
     anims*: seq[anim]
-    boundries*: seq[bounds]
+    boundries*: bounds
 
     baseframes*: seq[Mat4]
     inverseframes*: seq[Mat4]
@@ -320,6 +320,50 @@ proc loadText(fs: FileStream, data: var iqmData) =
   for i in 0..(n-1) :
     data.text = data.text & fs.readChar()
 
+proc loadBoundries(fs: FileStream, data: var iqmData) =
+  # initialize our data
+  data.boundries = bounds()
+  if (data.h.num_frames.int > 0) : #iqm won't calculate bounding boxes for static objects
+    fs.setPosition(data.h.ofs_bounds.int)
+    data.boundries.bbmins[0] = fs.readFloat32()
+    data.boundries.bbmins[1] = fs.readFloat32()
+    data.boundries.bbmins[2] = fs.readFloat32()
+
+    data.boundries.bbmaxs[0] = fs.readFloat32()
+    data.boundries.bbmaxs[1] = fs.readFloat32()
+    data.boundries.bbmaxs[2] = fs.readFloat32()
+
+    data.boundries.xyradius = fs.readFloat32()
+    data.boundries.radius = fs.readFloat32()
+  else : # so we will
+    var
+      minX = 0.0
+      minY = 0.0
+      minZ = 0.0
+      maxX = 0.0
+      maxY = 0.0
+      maxZ = 0.0
+    for i in 0..((data.h.num_vertexes.int*3)-1) :
+      if (data.verticies[i*3+0] < minX) :
+        minX = data.verticies[i*3+0]
+      if (data.verticies[i*3+1] < minY) :
+        minY = data.verticies[i*3+0]
+      if (data.verticies[i*3+2] < minZ) :
+        minZ = data.verticies[i*3+0]
+
+      if (data.verticies[i*3+0] > maxX) :
+        maxX = data.verticies[i*3+0]
+      if (data.verticies[i*3+1] > maxY) :
+        maxY = data.verticies[i*3+0]
+      if (data.verticies[i*3+2] > maxZ) :
+        maxZ = data.verticies[i*3+0]
+    data.boundries.bbmins[0] = minX
+    data.boundries.bbmins[1] = minY
+    data.boundries.bbmins[2] = minZ
+
+    data.boundries.bbmaxs[0] = maxX
+    data.boundries.bbmaxs[1] = maxY
+    data.boundries.bbmaxs[2] = maxZ
 
 proc loadIQM(fs: FileStream, data: var iqmData): bool =
   if (not loadVAO(fs, data)) :
@@ -328,6 +372,7 @@ proc loadIQM(fs: FileStream, data: var iqmData): bool =
   loadText(fs, data)
   loadMeshes(fs, data) # do this after vertexes because less cylces if data corrupted
   loadTris(fs, data)
+  loadBoundries(fs, data)
   return true
   #We are at the start of the triangles now
 
@@ -427,7 +472,6 @@ proc loadIQMAnims(fs: FileStream, data: var iqmData): bool =
   # init
   if (data.h.num_poses.int != data.h.num_joints.int) :
     return false
-
   data.anims = newSeq[anim](data.h.num_anims)
   let n = data.h.num_anims.int #number of meshs
   fs.setPosition(data.h.ofs_anims.int)
@@ -438,7 +482,6 @@ proc loadIQMAnims(fs: FileStream, data: var iqmData): bool =
     data.anims[i].num_frames = fs.readInt32().uint
     data.anims[i].framerate = fs.readFloat32()
     data.anims[i].flags = fs.readInt32().uint
-
   data.baseframes = newSeq[Mat4](data.h.num_joints)
   data.inverseframes = newSeq[Mat4](data.h.num_joints)
   data.frames = newSeq[Mat4](data.h.num_frames.int*data.h.num_poses.int)
@@ -452,9 +495,15 @@ proc loadIQMAnims(fs: FileStream, data: var iqmData): bool =
 
   return true
 
+var lastPath = ""
+var lastParsed = iqmData()
+
 proc parseIQM*(filePath: string): iqmData =
   var file: File
   if (open(file, "content/" & filePath)) :
+    if (lastPath == filePath) :
+      return lastParsed
+
     var
       fs = newFileStream(file)
       data: iqmData
@@ -477,10 +526,16 @@ proc parseIQM*(filePath: string): iqmData =
     data.h = header
     if (header.num_meshes.int > 0 and not loadIQM(fs, data) ) :
       echo("ERROR: <" & filePath & "> ERROR LOADING MESHES")
+      return iqmData()
     if (header.num_anims.int > 0 and not loadIQMAnims(fs, data)) :
       echo("ERROR: <" & filePath & "> NO BASE ANIM")
+      return iqmData()
 
     close(fs)
+
+    lastPath = filePath
+    lastParsed = data
+
     return data
 
   echo("ERROR: " & filePath & " file not found")
