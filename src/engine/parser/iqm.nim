@@ -335,6 +335,7 @@ proc loadBoundries(fs: FileStream, data: var iqmData) =
 
     data.boundries.xyradius = fs.readFloat32()
     data.boundries.radius = fs.readFloat32()
+
   else : # so we will
     var
       minX = 0.0
@@ -347,16 +348,16 @@ proc loadBoundries(fs: FileStream, data: var iqmData) =
       if (data.verticies[i*3+0] < minX) :
         minX = data.verticies[i*3+0]
       if (data.verticies[i*3+1] < minY) :
-        minY = data.verticies[i*3+0]
+        minY = data.verticies[i*3+1]
       if (data.verticies[i*3+2] < minZ) :
-        minZ = data.verticies[i*3+0]
+        minZ = data.verticies[i*3+2]
 
       if (data.verticies[i*3+0] > maxX) :
         maxX = data.verticies[i*3+0]
       if (data.verticies[i*3+1] > maxY) :
-        maxY = data.verticies[i*3+0]
+        maxY = data.verticies[i*3+1]
       if (data.verticies[i*3+2] > maxZ) :
-        maxZ = data.verticies[i*3+0]
+        maxZ = data.verticies[i*3+2]
     data.boundries.bbmins[0] = minX
     data.boundries.bbmins[1] = minY
     data.boundries.bbmins[2] = minZ
@@ -500,10 +501,10 @@ var lastParsed = iqmData()
 
 proc parseIQM*(filePath: string): iqmData =
   var file: File
-  if (open(file, "content/" & filePath)) :
-    if (lastPath == filePath) :
-      return lastParsed
+  if (lastPath == filePath) :
+    return lastParsed
 
+  if (open(file, "content/" & filePath)) :
     var
       fs = newFileStream(file)
       data: iqmData

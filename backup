@@ -166,3 +166,56 @@ proc drawww() =
     glEnd()
 
 #addDraw(drawww)
+
+
+#We will be working in local space, and THIS will be at our origin
+let
+  thisMin = this.lmin + this.obbc
+  thisMax = this.lmax + this.obbc
+  thatMin = that.lmin + that.obbc
+  thatMax = that.lmax + that.obbc
+
+var
+  aCorners: array[0..7, Vec3]
+  bCorners: array[0..7, Vec3]
+  aRot = this.rot
+  bRot = that.rot
+
+#now we need to map each point onto each plane
+let
+  av0 = vec3(thisMin.x, thisMin.y, thisMin.z)
+  av1 = vec3(thisMin.x, thisMin.y, thisMax.z)
+  av2 = vec3(thisMin.x, thisMax.y, thisMax.z)
+  av3 = vec3(thisMin.x, thisMax.y, thisMin.z)
+  av4 = vec3(thisMax.x, thisMax.y, thisMax.z)
+  av5 = vec3(thisMax.x, thisMax.y, thisMin.z)
+  av6 = vec3(thisMax.x, thisMin.y, thisMin.z)
+  av7 = vec3(thisMax.x, thisMin.y, thisMax.z)
+
+  bv0 = vec3(thatMin.x, thatMin.y, thatMin.z)
+  bv1 = vec3(thatMin.x, thatMin.y, thatMax.z)
+  bv2 = vec3(thatMin.x, thatMax.y, thatMax.z)
+  bv3 = vec3(thatMin.x, thatMax.y, thatMin.z)
+  bv4 = vec3(thatMax.x, thatMax.y, thatMax.z)
+  bv5 = vec3(thatMax.x, thatMax.y, thatMin.z)
+  bv6 = vec3(thatMax.x, thatMin.y, thatMin.z)
+  bv7 = vec3(thatMax.x, thatMin.y, thatMax.z)
+
+let aCorners = getBoxExtents(this)
+aCorners[0] = aRot * (av0) + this.pos
+aCorners[1] = aRot * (av1) + this.pos
+aCorners[2] = aRot * (av2) + this.pos
+aCorners[3] = aRot * (av3) + this.pos
+aCorners[4] = aRot * (av4) + this.pos
+aCorners[5] = aRot * (av5) + this.pos
+aCorners[6] = aRot * (av6) + this.pos
+aCorners[7] = aRot * (av7) + this.pos
+
+bCorners[0] = bRot * (bv0) + that.pos
+bCorners[1] = bRot * (bv1) + that.pos
+bCorners[2] = bRot * (bv2) + that.pos
+bCorners[3] = bRot * (bv3) + that.pos
+bCorners[4] = bRot * (bv4) + that.pos
+bCorners[5] = bRot * (bv5) + that.pos
+bCorners[6] = bRot * (bv6) + that.pos
+bCorners[7] = bRot * (bv7) + that.pos

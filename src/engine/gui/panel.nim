@@ -3,6 +3,7 @@ import opengl, math
 import globals
 import surface
 import engine/coords/matrix, engine/coords/vector
+
 ######################
 ########PANELS########
 ######################
@@ -18,6 +19,7 @@ type
     drawFunc*: proc(x,y,width,height: float)#this is the function to call to draw it
     doClick*: proc(button: int, pressed: bool, x,y: float)
     visible*: bool
+    crop*: bool # forces content to remain inside the panel
     children*: seq[panel]
     parent*: panel
 
@@ -40,17 +42,34 @@ proc defaultClick(): proc(button: int, pressed: bool, x,y: float) =
 
 proc newPanel*(x,y,width,height: float): panel =
   result = panel()
-  result.x = x/(scrW/2) - 1
-  result.y = y/(scrH/2) - 1 # corrects it so that the origin is the top left
-  result.width = width/(scrW/2)
-  result.height = height/(scrH/2)
+  result.x = x
+  result.y = y
+  result.width = width
+  result.height = height
   result.visible = true
   result.textureID = 0
+  result.crop = true
 
   result.drawFunc = default()
   result.doClick =  defaultClick()
   result.children = @[]
   mainScreen.children.add(result)
+
+proc newPanel*(x,y,width,height: float, parent: panel): panel =
+  result = panel()
+  result.x = x
+  result.y = y
+  result.width = width
+  result.height = height
+  result.visible = true
+  result.textureID = 0
+  result.crop = true
+
+  result.drawFunc = default()
+  result.doClick =  defaultClick()
+  result.children = @[]
+  result.parent = parent
+  parent.children.add(result)
 
 ######################
 #######SCREENS########
@@ -97,18 +116,36 @@ mainScreen = newScreen(0.0, 0.0, 0.0,  0.0, 0.0, 0.0)
 
 proc dive(cPanel: panel) =
   var cur: panel
+  if (cPanel.crop) :
+    glScissor(GLint(cPanel.x), GLint(cPanel.y),  GLsizei(cPanel.width), GLsizei(cPanel.height))
+
   for i in low(cPanel.children)..high(cPanel.children):
     cur = cPanel.children[i]
     if (cur.visible) :
-      cur.drawFunc( cur.x, cur.y, cur.width, cur.height )
-      glTranslatef(0,0,0.0001) # push the next panel back a bit to stop z fighting
+      surface.setCurPos(cPanel.x + cur.x, cPanel.y + cur.y)
+      cur.drawFunc(cur.x, cur.y, cur.width, cur.height)
 
 proc dive(cScreen: screen) = #Dive because its going to do a depth first call order
   var cur: panel
   for i in low(cScreen.children)..high(cScreen.children):
     cur = cScreen.children[i]
+    surface.setCurPos(cur.x, cur.y)
     cur.drawFunc(cur.x, cur.y, cur.width, cur.height)
     cur.dive()
+
+
+
+proc getAbsoluteX*(cPanel: panel): float =
+  if (cPanel.parent == nil) :
+    return 0.0
+  else :
+    return cPanel.parent.x + getAbsoluteX(cPanel.parent)
+
+proc getAbsoluteY*(cPanel: panel): float =
+  if (cPanel.parent == nil) :
+    return 0.0
+  else :
+    return cPanel.parent.y + getAbsoluteY(cPanel.parent)
 
 var pixelArray: array[0..3,GLfloat]
 proc collide(cPanel: panel, x,y: float): bool = #tests whether or not a panel has been clicked on
@@ -120,28 +157,41 @@ proc collide(cPanel: panel, x,y: float): bool = #tests whether or not a panel ha
   glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
   setColor(69,96,59,255)
+  surface.setCurPos(getAbsoluteX(cPanel), getAbsoluteY(cPanel))
   rect(cPanel.x,cPanel.y,cPanel.width,cPanel.height)
   setColor(255,255,255,255)
 
   glReadPixels((GLint) x,(GLint)(scrH.float-y-1), (GLsizei) 1,(GLsizei) 1, GL_RGBA, cGL_FLOAT, addr pixelArray[0])
+
   if (pixelArray[0]*255 == 69 and pixelArray[1]*255 == 96 and pixelArray[2]*255 == 59) :
     return true
   return false
 
-proc panelsDraw*() =
-  #glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+proc drawPrep() =
   glUseProgram(0) # make sure we don't mess with the custom shader
+  glEnable(GL_SCISSOR_TEST)
   glDisable(GL_TEXTURE_2D)
   glDisable(GL_CULL_FACE)
+  glEnable(GL_BLEND)
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
   glMatrixMode(GL_MODELVIEW)
   glLoadIdentity()
+
+proc drawCleanup() =
+  glEnable(GL_CULL_FACE)
+  glEnable(GL_TEXTURE_2D)
+  glDisable(GL_BLEND)
+  glDisable(GL_SCISSOR_TEST)
+
+proc panelsDraw*() =
+  drawPrep()
   mainScreen.dive()
 
-  var cScreen: screen # current Screen
-  for i in low(sManager)..high(sManager):
-    cScreen = sManager[i]
+  #var cScreen: screen # current Screen
+  #for i in low(sManager)..high(sManager):
+  #  cScreen = sManager[i]
     #glMatrixMode(GL_PROJECTION)
     #glLoadIdentity()
     #glLoadMatrixf(camera.proj.m[0].addr)
@@ -151,28 +201,31 @@ proc panelsDraw*() =
 
     #glLoadMatrixf(cScreen.matrix.m[0].addr)
     #cScreen.dive()
-  glEnable(GL_CULL_FACE)
-  glEnable(GL_TEXTURE_2D)
+  drawCleanup()
 
 #Panel I/O
+proc checkCollision(cPanel: panel, x,y: float): panel =
+  if (cPanel.children.len > 0) :
+    var cur: panel
+    for i in low(cPanel.children)..high(cPanel.children):
+      cur = cPanel.children[i]
+      if (cur.collide(x,y)) :
+        return checkCollision(cur,x,y)
+  return cPanel
+
 proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
   var
     cur: panel
     xCoords, yCoords: float
     xMin,xMax: float
     yMin,yMax: float
-  glUseProgram(0) # make sure we don't mess with the custom shader
-  glDisable(GL_TEXTURE_2D)
-  glDisable(GL_CULL_FACE)
-  glMatrixMode(GL_PROJECTION)
-  glLoadIdentity()
-  glMatrixMode(GL_MODELVIEW)
-  glLoadIdentity()
+  drawPrep()
+  glDisable(GL_SCISSOR_TEST)
   for i in low(mainScreen.children)..high(mainScreen.children):
     cur = mainScreen.children[i]
     if (cur.collide(x,y)) :
-      cur.doClick(button, pressed, x,y) # call the do click
-      break
+      checkCollision(cur,x,y).doClick(button, pressed, x,y) # call the do click
+
 
   #var cScreen: screen
   #var pro = perspective(fov = 50.0, aspect = (scrW/scrH).float, near = 0.05, far = 10000.0)
@@ -195,8 +248,7 @@ proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
   #      cur.doClick( button, pressed, x,y ) # call the do click
   #      break
 
-  glEnable(GL_CULL_FACE)
-  glEnable(GL_TEXTURE_2D)
+  drawCleanup()
 
     #take screen coords, convert them to real word coordinates
     #no

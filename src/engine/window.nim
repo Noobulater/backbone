@@ -60,22 +60,21 @@ proc update(dt: float) =
   audio.update(dt)
   simulation.update(dt)
 
-var z = newPanel(0,0,100,100)
-let sound = Sound("sound/whatayabuyin.wav")
-
-proc buy(button: int, pressed: bool, x,y: float) =
-  sound.play()
-z.doClick = buy
+var z = newPanel(10,10,150,30)
 
 proc drurr(x,y,width,height: float) =
-  setColor(255, 255, 255, 255)
-  trect(x, y, width, height, txtId)
+  setColor(255, 0, 0, 55)
+  rect(0.0, 0.0, width, height)
 
+  setColor(255, 255, 255, 55)
+  rect(2.0, 2.0, width-4, height-4)
+
+  drawText("Trebuchet", 0.0,0.0, Color(255,255,255,255), Color(0,0,0,255))
 z.drawFunc = drurr
 
 proc display() =
   drawScene()
-  #panelsDraw()
+  panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
 proc mouseInput( evt: MouseButtonEventPtr ) =
@@ -116,13 +115,20 @@ proc keyInput( evt: KeyboardEventPtr ) =
   #of KeyUp: action = "stop"
   #else: action = "else"
   case evt.keysym.sym
-  of K_W: camera.pos = vec3(camera.pos[0] + movespeed, camera.pos[1], camera.pos[2])
-  of K_S: camera.pos = vec3(camera.pos[0] - movespeed, camera.pos[1], camera.pos[2])
-  of K_A: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] + movespeed)
-  of K_D: camera.pos = vec3(camera.pos[0], camera.pos[1], camera.pos[2] - movespeed)
-  of K_SPACE: camera.pos = vec3(camera.pos[0], camera.pos[1] + movespeed, camera.pos[2])
-  of K_LCTRL: camera.pos = vec3(camera.pos[0], camera.pos[1] - movespeed, camera.pos[2])
-  else : discard
+  of K_W:
+    camera.pos = camera.pos + forward(camera.view) * -1.0
+  of K_S:
+    camera.pos = camera.pos + forward(camera.view) * 1.0
+  of K_A:
+    camera.pos = camera.pos + side(camera.view) * 1.0
+  of K_D:
+    camera.pos = camera.pos + side(camera.view) * -1.0
+  of K_SPACE:
+    camera.pos = camera.pos + vec3(0.0,1.0,0.0)
+  of K_LCTRL:
+    camera.pos = camera.pos + vec3(0.0,-1.0,0.0)
+  else:
+    discard
   #of K_UP: simulator.controlInput("up", action)
   #of K_DOWN: simulator.controlInput("down", action)
   #of K_LEFT: simulator.controlInput("roll_left", action)

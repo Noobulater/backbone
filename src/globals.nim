@@ -16,6 +16,21 @@ var
   curTime* = getTime # current time counter
   curTicks* = getTicks
 
+type
+  pType* = enum
+    pAABB, pOBB, pSPHERE, pCYLINDER, pPOLYGON
+    # Type of physics object
+    # 1 AABB
+    # 2 OBB
+    # 3 SPHERE
+    # 4 CYLINDER
+    # 5 POLYGON
+  Colr* = object
+    r*,g*,b*,a*: int
+
+proc Color*(r,g,b,a: float): Colr = Colr(r: (r*255.0).int, g: (g*255.0).int, b: (b*255.0).int, a: (a*255.0).int)
+proc Color*(r,g,b,a: int): Colr = Colr(r: r, g: g, b: b, a: a)
+
 # Convience functions for sequences
 proc get*[T](m: seq[T], gEntry: T): int =
   for i in low(m)..high(m) :

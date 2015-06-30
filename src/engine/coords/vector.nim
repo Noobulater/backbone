@@ -108,6 +108,12 @@ proc max*(a,b: Vec3): Vec3 =
     else :
       result[i] = b[i]
 
+proc absMaxValue*(a: Vec3): float =
+  result = abs(a[0])
+  for i in 1..high(a.d) : #skip the first compare to save cylces
+    if (abs(a[i]) > result) :
+      result = abs(a[i])
+
 proc maxValue*(a: Vec3): float =
   result = a[0]
   for i in 1..high(a.d) : #skip the first compare to save cylces

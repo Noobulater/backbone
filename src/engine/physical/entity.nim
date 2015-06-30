@@ -6,19 +6,14 @@ import engine/coords/matrix, engine/coords/vector
 type
   Entity* = ref object of RootObj
     pos*: Vec3
-
     angle*: Vec3
-
     scale*: Vec3
     matrix*, rot*: Mat4
     parent*: Entity
-    #physics
+    #Basic motion
     angleVel*: Vec3
     vel*: Vec3
-    gravity*: float
-    drag*: float # how quickly an objects velocity decays
-    obbc*, lmin*,lmax*: Vec3 # axis aligned bounding box : obbCenter, local min, local max
-
+    
 var entities* = newSeq[Entity]()
 
 proc newEntity*(): Entity = Entity()
@@ -72,17 +67,13 @@ method update*(this: Entity, dt: float) =
 # Initializes this entity.
 method init*(this: Entity): Entity =
   this.pos = vec3(0, 0, 0)
-  this.vel = vec3(0, 0, 0)
   this.angle = vec3(0, 0, 0)
-  this.angleVel = vec3(0, 0, 0)
   this.scale = vec3(1, 1, 1)
-  this.gravity = 0
-  this.drag = 0
+  this.vel = vec3(0, 0, 0)
+  this.angleVel = vec3(0, 0, 0)
   this.calcMatrix()
   this
 
-method setGravity*(this: Entity, g: float) =
-  this.gravity = g
-
-method setDrag*(this: Entity, d: float) =
-  this.drag = d
+method getForward*(this: Entity): Vec3 = return this.rot * vec3(1,0,0)
+method getUp*(this: Entity): Vec3 = return this.rot * vec3(0,1,0)
+method getRight*(this: Entity): Vec3 = return this.rot * vec3(0,0,1)
