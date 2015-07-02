@@ -1,7 +1,7 @@
 #Written By Aaron Bentley
 #The purpose of this file is to simulate physics, nothing more
 import globals, glx, math, opengl
-import physical/entity, physical/model, physical/physObj
+import physical/entity, physical/model, physical/physObj, physical/dray
 import coords/matrix, coords/vector
 import physical/colData, parser/bmp, parser/iqm
 import physical/voxel
@@ -16,10 +16,11 @@ proc init*() = #initializes teh physics engine
   let dist = random(40.0..2000.0)
   #vox.program = phong
 
-  var astroid = newPhysObj()
+  var astroid = newDray()
   astroid.setPos(vec3(0.0,8.0,2.0))
-  astroid.setAngleVel(vec3(3.0,60.0,20.0))
-  astroid.setVel(vec3(0.0,-1.0,0.0))
+  #astroid.setAngleVel(vec3(3.0,0.0,0.0))
+  #astroid.setVel(vec3(0.0,-1.0,0.0))
+  astroid.viewOffset = vec3(0.0,0.0,0.0)
   astroid.mass = 2.0
   astroid.program = phong
   astroid.setModel("models/cube.iqm")
@@ -29,18 +30,32 @@ proc init*() = #initializes teh physics engine
 
   camera.viewEntity = astroid
 
+  var block1 = newPhysObj()
+  block1.setPos(vec3(0.0,5.0,5.0))
+  block1.setAngleVel(vec3(57.0,23.0,12.0))
+  block1.setVel(vec3(0.0,-1.0,0.0))
+  block1.viewOffset = vec3(0.0,0.0,0.0)
+  block1.mass = 2.0
+  block1.gravity = 1.0
+  block1.program = phong
+  block1.setModel("models/cube.iqm")
+  block1.material = initMaterial("materials/models/cube/Material.bmp")
+  block1.lmin = vec3(-1)
+  block1.lmax = vec3(1)
+
   #quit()
   var brick = newPhysObj()
   brick.setPos(vec3(0.0,0.0,0.0))
   brick.setAngle(vec3(0.0,0.0,0.0))
-  brick.setAngleVel(vec3(0.0,0.0,0.0))
+  #brick.setAngleVel(vec3(62.0,4.0,1.0))
   brick.setVel(vec3(0.0,0.0,0.0))
   brick.program = phong
   brick.mass = 1.0
   brick.setModel("models/cube.iqm")
   brick.material = initMaterial("materials/models/cube/Material.bmp")
-  brick.lmin = vec3(-1)
-  brick.lmax = vec3(1)
+  brick.lmin = vec3(-5.0, -0.2, -5.0)
+  brick.lmax = vec3(5.0, 0.2, 5.0)
+  brick.scale = vec3(5.0, 0.2, 5.0)
 
   var skydome = newModel()
   skydome.program = initProgram("phong.vert", "sky.frag")
@@ -120,11 +135,20 @@ proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis: Vec3, cData: var co
   let longSpan = max(aMax,bMax) - min(aMin,bMin)
   let sumSpan = (aMax - aMin) + (bMax - bMin)
 
-  return (longSpan < sumSpan) # Change this to <= if you want the case were they are touching but not overlapping, to count as an intersection
+
+  if (longSpan < sumSpan) : # Change this to <= if you want the case were they are touching but not overlapping, to count as an intersection
+    if (abs(cData.pushDistance) > abs(sumSpan - longSpan)) : # We may want to push them apart after intersection
+      if (bMax < aMax) :
+        cData.pushDistance = sumSpan - longSpan
+      else :
+        cData.pushDistance = -1 * (sumSpan - longSpan)
+      cData.pushAxis = axis
+    return true
+  return false
 
 var once = true
 proc intOBBOBB(this, that: PhysObj): colData =
-  var c = colData(hitPos: this.pos, ent1: this, ent2: this, intersecting: false)
+  var c = colData(hitPos: this.pos, ent1: this, ent2: this, intersecting: false, pushDistance : 100000)
   let
     aCorners = getBoxExtents(this)
     bCorners = getBoxExtents(that)
@@ -152,7 +176,7 @@ proc intOBBOBB(this, that: PhysObj): colData =
       if (checkAxis(aCorners, bCorners, aZ, c)) :
         if (checkAxis(aCorners, bCorners, bX, c)) :
           if (checkAxis(aCorners, bCorners, bY, c)) :
-            if (checkAxis(aCorners, bCorners, bZ, c)) :
+            if (checkAxis(aCorners, bCorners,bZ, c)) :
               if (checkAxis(aCorners, bCorners, cXX, c)) :
                 if (checkAxis(aCorners, bCorners, cYY, c)) :
                   if (checkAxis(aCorners, bCorners, cZZ, c)) :
@@ -163,6 +187,8 @@ proc intOBBOBB(this, that: PhysObj): colData =
                               if (checkAxis(aCorners, bCorners, cZX, c)) :
                                 if (checkAxis(aCorners, bCorners, cZY, c)) :
                                   if (once) :
+                                    echo(c.pushAxis)
+                                    echo(c.pushDistance)
                                     once = false
                                     #echo(c.hitPos)
                                     #simple(1, proc() = camera.pos = c.hitPos)
@@ -196,20 +222,15 @@ proc update*(dt: float) = #dt was the last time it was called
   var curEnt: PhysObj
   for i in low(physObjs)..high(physObjs) :
     curEnt = physObjs[i]
-    if (curEnt.gravity != 0) :
-      let newGrav = curEnt.vel[1] - curEnt.gravity * dt
-      curEnt.setVel(vec3(curEnt.vel[0], newGrav, curEnt.vel[2])) # gravity/drag handle
-    if (curEnt.drag != 0) :
-      let drag = curEnt.drag * dt
-      curEnt.setVel(vec3(curEnt.vel[0]*drag, curEnt.vel[1]*drag, curEnt.vel[2]*drag)) # gravity/drag handle
-    # gravity/drag handle
     # Now check collision
+
     if (curEnt.lmin != 0.0 or curEnt.lmax != 0.0) : # no collisons, dont bother
       if (curEnt.vel != 0.0 or curEnt.angleVel != 0.0) :
         for j in low(physObjs)..high(physObjs) :
           if (i != j) :
             if (physObjs[j].lmin != 0.0 or physObjs[j].lmax != 0.0) :
-              if (intersecting(curEnt, physObjs[j]).intersecting) :
+              let cData = intersecting(curEnt, physObjs[j])
+              if (cData.intersecting) :
                 let
                   v1 = curEnt.vel
                   v2 = physObjs[j].vel
@@ -220,8 +241,10 @@ proc update*(dt: float) = #dt was the last time it was called
                 curEnt.angleVel = vec3(0)
                 physObjs[j].vel = vec3(0)#v1 * ((2.0 * m1)/(d)).float - v2 * ((m1 - m2)/(d)).float
                 physObjs[j].angleVel = vec3(0)
+                #if (curEnt.gravity > 0) :
+                  #echo(cData.pushDistance)
+                curEnt.pos = curEnt.pos + cData.pushAxis * cData.pushDistance
                 #curEnt.angleVel = curEnt.angleVel * -1
-
     curEnt.update(dt) # move the object
     #if (physObjs[1].intersect(physObjs[0])) :
     #  physObjs[1].vel = vec3(0.0,1.0,0.0)

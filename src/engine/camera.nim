@@ -17,12 +17,13 @@ proc cameraAspect*(aspect: float) =
 proc update*() =
   var pPitch = ang.p
   var pYaw = ang.y
+  var pRoll = ang.r
   var pPos = pos
   if (viewEntity != nil):
     # let pPos = driver.pos * -1 + driver.matrix.forward() * 0.55 + driver.matrix.up() * 0.4
     pPitch += viewEntity.angle[0]
     pYaw += -viewEntity.angle[1]
-    pPos = viewEntity.matrix * pos
+    pPos = viewEntity.matrix * (pos + viewEntity.viewOffset)
   view = identity().rotate(pPitch, vec3(1, 0, 0)) * identity().rotate(pYaw, vec3(0, 1, 0)) * identity().translate(pPos * -1)
 
 

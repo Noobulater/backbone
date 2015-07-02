@@ -25,11 +25,30 @@ type
     # 3 SPHERE
     # 4 CYLINDER
     # 5 POLYGON
+  inputCode* = enum
+    PRIMARYFIRE, SECONDARYFIRE, FORWARD, BACKWARD, STRAFELEFT, STRAFERIGHT, JUMP, CROUCH
   Colr* = object
     r*,g*,b*,a*: int
 
 proc Color*(r,g,b,a: float): Colr = Colr(r: (r*255.0).int, g: (g*255.0).int, b: (b*255.0).int, a: (a*255.0).int)
 proc Color*(r,g,b,a: int): Colr = Colr(r: r, g: g, b: b, a: a)
+
+proc clampHigh*(num,numHigh: float): float =
+  result = num
+  if (num > numHigh) :
+    result = numHigh
+
+proc clampLow*(num,numLow: float): float =
+  result = num
+  if (num < numLow) :
+    result = numLow
+
+proc clamp*(num,numLow,numHigh: float): float =
+  result = num
+  if (num > numHigh) :
+    result = numHigh
+  elif (num < numLow) :
+    result = numLow
 
 # Convience functions for sequences
 proc get*[T](m: seq[T], gEntry: T): int =

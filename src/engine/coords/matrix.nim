@@ -497,15 +497,15 @@ proc rotate*(m: Mat4, angle: float32, axis: Vec3): Mat4 =
 #    m[13],
 #    m[14],
 #    m[15]
-#  ]  
+#  ]
 
 proc xspace*(view: Mat4): Vec3 = vec3(view[0], view[1], view[2])
 proc yspace*(view: Mat4): Vec3 = vec3(view[4], view[5], view[6])
 proc zspace*(view: Mat4): Vec3 = vec3(view[8], view[9], view[10])
 proc space*(view: Mat4, v: Vec3): Vec3 = vec3(dot(view.xspace, v), dot(view.yspace, v), dot(view.zspace, v))
-proc forward*(view: Mat4): Vec3 = normal(view.space(vec3(0, 0, 1)))
-proc side*(view: Mat4): Vec3 = cross(view.forward(), vec3(0, 1, 0))
-proc up*(view: Mat4): Vec3 = cross(view.forward(), view.side()) * -1
+proc forward*(view: Mat4): Vec3 = normal(view.space(vec3(0, 0, -1)))
+proc right*(view: Mat4): Vec3 = cross(view.forward(), vec3(0, 1, 0))
+proc up*(view: Mat4): Vec3 = cross(view.forward(), view.right()) * -1
 
 proc lookat*(eye, target, up: Vec3): Mat4 =
   let

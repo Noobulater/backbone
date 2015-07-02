@@ -48,6 +48,6 @@ method init*(this: Model): Model =
   this
 
 #method update*(this: Model, dt: float) =
-#   procCall entity.update(this, dt)
+  #procCall entity.update(this, dt)
 
 proc newModel*(): Model = Model().init.track()

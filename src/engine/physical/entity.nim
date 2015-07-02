@@ -13,7 +13,9 @@ type
     #Basic motion
     angleVel*: Vec3
     vel*: Vec3
-    
+    #view Position, for when a player is watching this entity
+    viewOffset*: Vec3
+
 var entities* = newSeq[Entity]()
 
 proc newEntity*(): Entity = Entity()
@@ -71,6 +73,7 @@ method init*(this: Entity): Entity =
   this.scale = vec3(1, 1, 1)
   this.vel = vec3(0, 0, 0)
   this.angleVel = vec3(0, 0, 0)
+  this.viewOffset = vec3(0.0,0.0,0.0) # Will be the position a controller views from
   this.calcMatrix()
   this
 

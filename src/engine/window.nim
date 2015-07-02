@@ -5,11 +5,12 @@ import parser/iqm
 
 #Files
 import globals
-import camera, audio, timer, glx, simulation
+import camera, audio, timer, glx, simulation, controls
 import gui/panel
 import coords/matrix, coords/vector
 import parser/bmp
 import gui/surface
+import physical/dray
 
 proc resized(width, height: int) =
   scrW = width
@@ -108,25 +109,44 @@ proc mouseMotion( evt: MouseMotionEventPtr ) =
 
 let movespeed = 0.2
 #Handles Single Key Input
-proc keyInput( evt: KeyboardEventPtr ) =
+proc keyInput(evt: KeyboardEventPtr) =
   #var action = ""
   #case evt.kind
   #of KeyDown: action = "start"
   #of KeyUp: action = "stop"
   #else: action = "else"
+  var ent = Dray(camera.viewEntity)
   case evt.keysym.sym
   of K_W:
-    camera.pos = camera.pos + forward(camera.view) * -1.0
+    if (ent != nil):
+      ent.input(FORWARD)
+    else :
+      camera.pos = camera.pos + forward(camera.view) * 1.0
   of K_S:
-    camera.pos = camera.pos + forward(camera.view) * 1.0
+    if (ent != nil):
+      ent.input(BACKWARD)
+    else :
+      camera.pos = camera.pos + forward(camera.view) * -1.0
   of K_A:
-    camera.pos = camera.pos + side(camera.view) * 1.0
+    if (ent != nil):
+      ent.input(STRAFELEFT)
+    else :
+      camera.pos = camera.pos + right(camera.view) * -1.0
   of K_D:
-    camera.pos = camera.pos + side(camera.view) * -1.0
+    if (ent != nil):
+      ent.input(STRAFERIGHT)
+    else :
+      camera.pos = camera.pos + right(camera.view) * 1.0
   of K_SPACE:
-    camera.pos = camera.pos + vec3(0.0,1.0,0.0)
+    if (ent != nil):
+      ent.input(JUMP)
+    else :
+      camera.pos = camera.pos + vec3(0.0,1.0,0.0)
   of K_LCTRL:
-    camera.pos = camera.pos + vec3(0.0,-1.0,0.0)
+    if (ent != nil):
+      ent.input(CROUCH)
+    else :
+      camera.pos = camera.pos + vec3(0.0,-1.0,0.0)
   else:
     discard
   #of K_UP: simulator.controlInput("up", action)

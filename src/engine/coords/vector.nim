@@ -139,6 +139,43 @@ proc abs*(a: Vec3): Vec3 =
     if (a[i] < 0) :
       result[i] = a[i] * -1
 
+proc clampHigh*(a: Vec3, amt: float): Vec3 =
+  result = vec3(a[0],a[1],a[2])
+  for i in 0..high(a.d) : #skip the first compare to save cylces
+    if (a[i] > amt) :
+      result[i] = amt
+
+proc clampLow*(a: Vec3, amt: float): Vec3 =
+  result = vec3(a[0],a[1],a[2])
+  for i in 0..high(a.d) : #skip the first compare to save cylces
+    if (a[i] < amt) :
+      result[i] = amt
+
+proc clamp*(a: Vec3, lowamt, highamt: float): Vec3 =
+  result = vec3(a[0],a[1],a[2])
+  for i in 0..high(a.d) : #skip the first compare to save cylces
+    if (a[i] > highamt) :
+      result[i] = highamt
+    if (a[i] < lowamt) :
+      result[i] = lowamt
+      
+proc clampXYZamp*(a: Vec3, xamt, yamt, zamt: float): Vec3 =
+  result = vec3(a[0],a[1],a[2])
+  if (a[0] > xamt) :
+    result[0] = xamt
+  elif (a[0] < -xamt) :
+    result[0] = -xamt
+
+  if (a[1] > yamt) :
+    result[1] = yamt
+  elif (a[1] < -yamt) :
+    result[1] = -yamt
+
+  if (a[2] > zamt) :
+    result[2] = zamt
+  elif (a[2] < -zamt) :
+    result[2] = -zamt
+
 when isMainModule:
   proc test(cond: bool, name: string) =
     if (cond): echo("  PASSED: " & name)
