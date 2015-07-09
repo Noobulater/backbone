@@ -1,5 +1,5 @@
 import opengl, sdl2, sdl2/ttf, globals
-
+import engine/types
 ###########################
 ######SURFACE STUFF########
 ###########################
@@ -37,7 +37,6 @@ proc setColor*(r,g,b,a: float) =
   dAlpha = a
 
 proc setColor*(color: Colr) = setColor(color.r, color.g, color.b, color.a)
-
 
 proc setCurPos*(x,y:float) =
   curX = x
@@ -78,7 +77,7 @@ proc setText*(text: string) =
   if (curText != text) :
     curText = text
 
-    var color: Color
+    var color: sdl2.Color
     color.r = (255).uint8
     color.g = (255).uint8
     color.b = (255).uint8

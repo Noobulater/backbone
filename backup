@@ -219,3 +219,34 @@ bCorners[4] = bRot * (bv4) + that.pos
 bCorners[5] = bRot * (bv5) + that.pos
 bCorners[6] = bRot * (bv6) + that.pos
 bCorners[7] = bRot * (bv7) + that.pos
+
+
+trace.origin = trace.origin - that.pos
+trace.offset = trace.offset - that.pos
+
+trace.origin = that.rot * trace.origin
+trace.offset = that.rot * trace.offset
+trace.normal = normal(trace.origin - trace.offset)
+var
+  tmin = NegInf
+  tmax = trace.dist
+for i in 0..2 :
+  var
+    ood = 1.0 / trace.normal[i]
+    t1 = ((that.lmin[i] + that.obbc[i]) - trace.origin[i]) * ood
+    t2 = ((that.lmax[i] + that.obbc[i]) - trace.origin[i]) * ood
+
+  if (t1 > t2) :
+    t1 = ((that.lmax[i] + that.obbc[i]) - trace.origin[i]) * ood
+    t2 = ((that.lmin[i] + that.obbc[i]) - trace.origin[i]) * ood
+
+  if (t1 > tmin) :
+    tmin = t1
+  if (t2 > tmax) :
+    tmax = t2
+
+  if (tmin > tmax) :
+    return c
+echo("tmin : " ,tmin)
+c.hitpos = that.rot.inverse() * (trace.origin + trace.normal * tmin) + that.pos
+echo(c.hitpos)

@@ -2,10 +2,8 @@
 #Contributions/Base Code by Matt Nichols
 import math, complex
 import opengl
+import engine/types
 import vector, quat
-
-type Mat4* = object
-  m*: array[16, GLfloat]
 
 proc mat4*(m: Mat4): Mat4 =
   result = Mat4()

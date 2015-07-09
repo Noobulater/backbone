@@ -1,72 +1,39 @@
 #Written By Aaron Bentley
 #The purpose of this file is to simulate physics, nothing more
 import globals, glx, math, opengl
-import physical/entity, physical/model, physical/physObj, physical/dray
+import types
+import physical/entity, physical/physObj, physical/model
 import coords/matrix, coords/vector
-import physical/colData, parser/bmp, parser/iqm
-import physical/voxel
+import parser/bmp, parser/iqm
 import camera
 import timer
 
-#var vox = newVoxel()
-proc init*() = #initializes teh physics engine
-  var phong = initProgram("phong.vert", "phong.frag")
-
-  let theta = random(0.0..(PI * 2))
-  let dist = random(40.0..2000.0)
-  #vox.program = phong
-
-  var astroid = newDray()
-  astroid.setPos(vec3(0.0,8.0,2.0))
-  #astroid.setAngleVel(vec3(3.0,0.0,0.0))
-  #astroid.setVel(vec3(0.0,-1.0,0.0))
-  astroid.viewOffset = vec3(0.0,0.0,0.0)
-  astroid.mass = 2.0
-  astroid.program = phong
-  astroid.setModel("models/cube.iqm")
-  astroid.material = initMaterial("materials/models/cube/Material.bmp")
-  astroid.lmin = vec3(-1)
-  astroid.lmax = vec3(1)
-
-  camera.viewEntity = astroid
-
-  var block1 = newPhysObj()
-  block1.setPos(vec3(0.0,5.0,5.0))
-  block1.setAngleVel(vec3(57.0,23.0,12.0))
-  block1.setVel(vec3(0.0,-1.0,0.0))
-  block1.viewOffset = vec3(0.0,0.0,0.0)
-  block1.mass = 2.0
-  block1.gravity = 1.0
-  block1.program = phong
-  block1.setModel("models/cube.iqm")
-  block1.material = initMaterial("materials/models/cube/Material.bmp")
-  block1.lmin = vec3(-1)
-  block1.lmax = vec3(1)
-
-  #quit()
-  var brick = newPhysObj()
-  brick.setPos(vec3(0.0,0.0,0.0))
-  brick.setAngle(vec3(0.0,0.0,0.0))
-  #brick.setAngleVel(vec3(62.0,4.0,1.0))
-  brick.setVel(vec3(0.0,0.0,0.0))
-  brick.program = phong
-  brick.mass = 1.0
-  brick.setModel("models/cube.iqm")
-  brick.material = initMaterial("materials/models/cube/Material.bmp")
-  brick.lmin = vec3(-5.0, -0.2, -5.0)
-  brick.lmax = vec3(5.0, 0.2, 5.0)
-  brick.scale = vec3(5.0, 0.2, 5.0)
-
-  var skydome = newModel()
-  skydome.program = initProgram("phong.vert", "sky.frag")
-  skydome.setModel("models/skydome.iqm")
-  skydome.material = initMaterial("bmps/sky.bmp", "bmps/sky.bmp")
-  skydome.setScale(vec3(500))
-
+var skydome: Model
+proc init*() =
+  skydome = newModel()
+  skydome.program = initProgram("phong.vert", "phong.frag")
+  skydome.setModel("models/cube.iqm")
+  skydome.material = initMaterial("materials/models/cube/Material.bmp")
+  skydome.setScale(vec3(0.1))
+  #initializes teh physics engine
 
 #######################
 # COLLISION DETECTION #
 #######################
+
+proc minmaxAxis(axis: Vec3, vectors: varargs[Vec3]): array[0..1, float] =
+  var
+    aMin = Inf # should be float.max but i dont know how to do that in nim
+    aMax = NegInf # should be float.min but i dont know how to do that in nim
+  # Define two intervals, a and b. Calculate their min and max values
+  for i in 0..high(vectors) :
+    let aDist = vectors[i].dot(axis)
+    if (aDist < aMin) :
+      aMin = aDist
+    if (aDist > aMax) :
+      aMax = aDist
+  return [aMin, aMax]
+
 proc getBoxExtents(this: PhysObj): array[0..7, Vec3] =
   #We will be working in local space, and THIS will be at our origin
   let
@@ -113,18 +80,21 @@ proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis: Vec3, cData: var co
     return true
 
   var
-    aMin = 10000.0 # should be float.max but i dont know how to do that in nim
-    aMax = -10000.0 # should be float.min but i dont know how to do that in nim
-    bMin = 10000.0
-    bMax = -10000.0
-
+    aMin = Inf # should be float.max but i dont know how to do that in nim
+    aMax = NegInf # should be float.min but i dont know how to do that in nim
+    bMin = Inf
+    bMax = NegInf
+    minCorn = 0
+    maxCorn = 0
   # Define two intervals, a and b. Calculate their min and max values
   for i in 0..7 :
     let aDist = aCorners[i].dot(axis)
     if (aDist < aMin) :
-     aMin = aDist
+      minCorn = i
+      aMin = aDist
     if (aDist > aMax) :
-     aMax = aDist
+      maxCorn = i
+      aMax = aDist
     let bDist = bCorners[i].dot(axis)
     if (bDist < bMin) :
      bMin = bDist
@@ -135,13 +105,14 @@ proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis: Vec3, cData: var co
   let longSpan = max(aMax,bMax) - min(aMin,bMin)
   let sumSpan = (aMax - aMin) + (bMax - bMin)
 
-
   if (longSpan < sumSpan) : # Change this to <= if you want the case were they are touching but not overlapping, to count as an intersection
     if (abs(cData.pushDistance) > abs(sumSpan - longSpan)) : # We may want to push them apart after intersection
       if (bMax < aMax) :
         cData.pushDistance = sumSpan - longSpan
+        cData.hitPos = aCorners[minCorn]
       else :
         cData.pushDistance = -1 * (sumSpan - longSpan)
+        cData.hitPos = aCorners[maxCorn]
       cData.pushAxis = axis
     return true
   return false
@@ -186,10 +157,8 @@ proc intOBBOBB(this, that: PhysObj): colData =
                             if (checkAxis(aCorners, bCorners, cYZ, c)) :
                               if (checkAxis(aCorners, bCorners, cZX, c)) :
                                 if (checkAxis(aCorners, bCorners, cZY, c)) :
-                                  if (once) :
-                                    echo(c.pushAxis)
-                                    echo(c.pushDistance)
-                                    once = false
+                                  #if (once) :
+                                    #once = false
                                     #echo(c.hitPos)
                                     #simple(1, proc() = camera.pos = c.hitPos)
                                   #  simple(2, proc() = camera.pos = bCorners[1])
@@ -199,11 +168,146 @@ proc intOBBOBB(this, that: PhysObj): colData =
                                   #  simple(6, proc() = camera.pos = bCorners[5])
                                   #  simple(7, proc() = camera.pos = bCorners[6])
                                   #  simple(8, proc() = camera.pos = bCorners[7])
+
+
+                                  #We have our minimum seperating axis, lets calculate the hit position
+                                  c.hitPos = c.hitPos #+ (aX * c.pushDistance + aY * c.pushDistance + aZ * c.pushDistance) * (1/3)
                                   c.intersecting = true
                                   return c
   c.intersecting = false
   return c
 
+proc traceCheckAxis*(origin, offset: Vec3, aCorners: array[0..7, Vec3], axis: Vec3, cData: var colData): bool =
+  #Handles the cross product = {0,0,0} case
+  if(axis == 0.0) :
+    return true
+
+  var
+    tMin = Inf # should be float.max but i dont know how to do that in nim
+    tMax = NegInf # should be float.min but i dont know how to do that in nim
+    aMin = Inf
+    aMax = NegInf
+    t1 = origin.dot(axis)
+    t2 = offset.dot(axis)
+  # Define two intervals, a and b. Calculate their min and max values
+
+  if (t1 < t2) :
+    tMin = t1
+    tMax = t2
+  else :
+    tMin = t2
+    tMax = t1
+
+  for i in 0..7 :
+    let aDist = aCorners[i].dot(axis)
+    if (aDist < aMin) :
+     aMin = aDist
+    if (aDist > aMax) :
+     aMax = aDist
+
+  # One-dimensional intersection test between a and b
+
+  let longSpan = max(tMax,aMax) - min(tMin,aMin)
+  let sumSpan = (tMax - tMin) + (aMax - aMin)
+
+  return (longSpan <= sumSpan)
+
+proc intRayOBB*(t: traceData, that: PhysObj): colData =
+  result = colData(hitPos: t.offset, ent1: that, ent2: that, intersecting: false, pushDistance : 100000)
+  # THIS IS TEMPORARY, ITS A BIT EXPENSIVE BECAUSE IT PERFORMS THE OBB CALCULATIONS
+  # INSTEAD OF USING THE AABB TACTICS
+  var
+    origin = t.origin
+    offset = t.offset
+    normal = t.normal
+    dist = t.dist
+
+  #TODO: Use AABB test not OBB Seperating axis theorem
+  #TODO: Remove this and replace it with AABB variables
+  #Check to see if there is a seperating axis
+  #Since we already did the work to make it AABB, we need to
+  #Check it as if it is colliding as a degenerate AABB
+  #OBBs have three principle axes, the default x,y,z
+  let
+    aCorners = getBoxExtents(that)
+    aX = that.getForward() #a's local X axis
+    aY = that.getUp() #a's local Y Axis
+    aZ = that.getRight() #a's local Z Axis
+    cXR = aX.cross(normal)
+    cYR = aY.cross(normal)
+    cZR = aZ.cross(normal)
+  if (traceCheckAxis(origin, offset, aCorners, aX, result)) :
+    if (traceCheckAxis(origin, offset, aCorners, aY, result)) :
+      if (traceCheckAxis(origin, offset, aCorners, aZ, result)) :
+        if (traceCheckAxis(origin, offset, aCorners, cXR, result)) :
+          if (traceCheckAxis(origin, offset, aCorners, cYR, result)) :
+            if (traceCheckAxis(origin, offset, aCorners, cZR, result)) :
+              if (traceCheckAxis(origin, offset, aCorners, normal, result)) :
+                var
+                  tmin = NegInf # Need this to be the -MIN_FLOAT VALUE
+                  tmax = dist
+                #We have to convert to AABB because there isn't a simple way to ray trace an OBB
+                # Tranforms it back to local (relative to object) space
+                let
+                  inverse = that.rot.inverse()
+                  min = that.lmin
+                  max = that.lmax
+                origin = inverse * (origin - that.pos)
+                offset = inverse * (offset - that.pos)
+                normal = normal(offset - origin)
+
+                for i in 0..2 :
+                  if (abs(normal[i]) < 0.0001) :
+                    if (origin[i] < min[i] and max[i] > origin[i] ) :
+                      result.intersecting = false
+                      return result
+                  else :
+                    var
+                      ood = 1.0 / normal[i]
+
+                      t1 = (min[i] - origin[i]) * ood
+                      t2 = (max[i] - origin[i]) * ood
+                    if (t1 > t2) :
+                      t1 = (max[i] - origin[i]) * ood
+                      t2 = (min[i] - origin[i]) * ood
+
+                    if (t1 > tmin) :
+                      tmin = t1
+                    if (t2 > tmax) :
+                      tmax = t2
+
+                    if (tmin > tmax) :
+                      result.intersecting = false
+                      return result
+                result.hitPos = t.origin + t.normal * tmin
+                result.intersecting = true
+                return result
+  return result
+
+proc traceRay*(trace: traceData): traceResult =
+  result = traceResult()
+  result.hitPos = trace.offset
+  var minDist = trace.dist
+  for i in low(physObjs)..high(physObjs) :
+    let res = intRayOBB(trace, physObjs[i])
+    if (res.intersecting) :
+      let dist = distance(trace.origin, res.hitPos)
+      if (dist < minDist) :
+        minDist = dist
+        result.origin = trace.origin
+        result.normal = trace.normal
+        result.hitEnt = physObjs[i]
+        result.hitPos = res.hitPos
+        result.hit = true
+
+proc traceRay*(origin, normal: Vec3, dist: float): traceResult = # parameters are faster
+  return traceRay(traceData(origin: origin, offset: origin + normal * dist, normal: normal, dist: dist))
+
+proc click*() =
+  let trace = traceRay(camera.pos, camera.view.forward(), 10)
+  if (trace.hit) :
+    skyDome.setPos(trace.hitPos)
+    #trace.hitEnt.takeDamage(Damage(amount: 200, origin: trace.hitPos, normal: trace.normal))
 
 #Intersecting manager
 # This seperates and identifies which rules to use to test intersection
@@ -215,8 +319,8 @@ proc intersecting(this, that: PhysObj): colData =
   elif (this.physType == pPOLYGON and that.physType == pPOLYGON) :
     return colData(intersecting: false)
   return colData(intersecting: false)
-#######################
 
+#######################
 proc update*(dt: float) = #dt was the last time it was called
   #vox.draw()
   var curEnt: PhysObj
@@ -231,19 +335,15 @@ proc update*(dt: float) = #dt was the last time it was called
             if (physObjs[j].lmin != 0.0 or physObjs[j].lmax != 0.0) :
               let cData = intersecting(curEnt, physObjs[j])
               if (cData.intersecting) :
-                let
-                  v1 = curEnt.vel
-                  v2 = physObjs[j].vel
-                  m1 = curEnt.mass
-                  m2 = physObjs[j].mass
-                  d = m1 + m2
-                curEnt.vel = vec3(0)#(v1 * ((m1 - m2)/(d)).float + v2 * ((2.0 * m2)/(d)).float) * -1.0
-                curEnt.angleVel = vec3(0)
-                physObjs[j].vel = vec3(0)#v1 * ((2.0 * m1)/(d)).float - v2 * ((m1 - m2)/(d)).float
-                physObjs[j].angleVel = vec3(0)
+                curEnt.collide(cData)
+                physObjs[j].collide(cData)
                 #if (curEnt.gravity > 0) :
                   #echo(cData.pushDistance)
-                curEnt.pos = curEnt.pos + cData.pushAxis * cData.pushDistance
+
+                #echo(cData.hitPos)
+                #if (once) :
+                  #once = false
+                  #camera.pos = cData.hitPos + cData.pushAxis * cData.pushDistance
                 #curEnt.angleVel = curEnt.angleVel * -1
     curEnt.update(dt) # move the object
     #if (physObjs[1].intersect(physObjs[0])) :

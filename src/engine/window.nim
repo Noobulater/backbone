@@ -5,12 +5,14 @@ import parser/iqm
 
 #Files
 import globals
+import types
 import camera, audio, timer, glx, simulation, controls
 import gui/panel
 import coords/matrix, coords/vector
 import parser/bmp
 import gui/surface
 import physical/dray
+import world
 
 proc resized(width, height: int) =
   scrW = width
@@ -53,6 +55,7 @@ proc init*() =
 
   simulation.init()
   camera.init()
+  world.init()
 
   resized(scrW, scrH)
 
@@ -70,12 +73,12 @@ proc drurr(x,y,width,height: float) =
   setColor(255, 255, 255, 55)
   rect(2.0, 2.0, width-4, height-4)
 
-  drawText("Trebuchet", 0.0,0.0, Color(255,255,255,255), Color(0,0,0,255))
+  drawText("Trebuchet", 0.0,0.0, globals.Color(255,255,255,255), globals.Color(0,0,0,255))
 z.drawFunc = drurr
 
 proc display() =
   drawScene()
-  panelsDraw()
+  #panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
 proc mouseInput( evt: MouseButtonEventPtr ) =
@@ -93,7 +96,8 @@ proc mouseInput( evt: MouseButtonEventPtr ) =
   else : b = 5 # unrecognized input
 
   if (evt.kind == MouseButtonUp):
-    panelsMouseInput( b, true, evt.x.float, evt.y.float )
+    simulation.click()
+    #panelsMouseInput( b, true, evt.x.float, evt.y.float )
 
   #we might not even need type, but i wrote it out anyways. pressing delete is alot easier
 let camSpeed = 50.0
@@ -107,7 +111,7 @@ proc mouseMotion( evt: MouseMotionEventPtr ) =
   #if (not mainmenu.cursor):
   setViewAngle(max(min(camera.ang.p + evt.yrel.float * camSpeed * dt, 89.9), -89.9), camera.ang.y + evt.xrel.float * camSpeed * dt)
 
-let movespeed = 0.2
+let movespeed = 1.0
 #Handles Single Key Input
 proc keyInput(evt: KeyboardEventPtr) =
   #var action = ""
@@ -118,35 +122,23 @@ proc keyInput(evt: KeyboardEventPtr) =
   var ent = Dray(camera.viewEntity)
   case evt.keysym.sym
   of K_W:
-    if (ent != nil):
-      ent.input(FORWARD)
-    else :
-      camera.pos = camera.pos + forward(camera.view) * 1.0
+    if (ent == nil):
+      camera.pos = camera.pos + forward(camera.view) * movespeed
   of K_S:
-    if (ent != nil):
-      ent.input(BACKWARD)
-    else :
-      camera.pos = camera.pos + forward(camera.view) * -1.0
+    if (ent == nil):
+      camera.pos = camera.pos + forward(camera.view) * -movespeed
   of K_A:
-    if (ent != nil):
-      ent.input(STRAFELEFT)
-    else :
-      camera.pos = camera.pos + right(camera.view) * -1.0
+    if (ent == nil):
+      camera.pos = camera.pos + right(camera.view) * -movespeed
   of K_D:
-    if (ent != nil):
-      ent.input(STRAFERIGHT)
-    else :
-      camera.pos = camera.pos + right(camera.view) * 1.0
+    if (ent == nil):
+      camera.pos = camera.pos + right(camera.view) * movespeed
   of K_SPACE:
-    if (ent != nil):
-      ent.input(JUMP)
-    else :
-      camera.pos = camera.pos + vec3(0.0,1.0,0.0)
+    if (ent == nil):
+      camera.pos = camera.pos + vec3(0.0,movespeed,0.0)
   of K_LCTRL:
-    if (ent != nil):
-      ent.input(CROUCH)
-    else :
-      camera.pos = camera.pos + vec3(0.0,-1.0,0.0)
+    if (ent == nil):
+      camera.pos = camera.pos + vec3(0.0,-movespeed,0.0)
   else:
     discard
   #of K_UP: simulator.controlInput("up", action)

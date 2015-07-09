@@ -2,157 +2,16 @@
 # version 1: April 20, 2010
 
 # all data is little endian
-import opengl, endians, streams
+import opengl, streams
+import engine/types
 import engine/coords/quat, engine/coords/matrix, engine/coords/vector
 
 let
   IQM_MAGIC = "INTERQUAKEMODEL" & '\0'
   IQM_VERSION = 2
+  rotate = identity().rotate(-90, vec3(1,0,0))
 
-type
-  header* = object
-    magic: string#magic : array[0..15, char] #the string "INTERQUAKEMODEL\0", 0 terminated
-    version : uint # must be version 1
-    filesize: uint
-    flags: uint
-    num_text*, ofs_text: uint
-    num_meshes*, ofs_meshes: uint
-    num_vertexarrays*, num_vertexes*, ofs_vertexarrays: uint
-    num_triangles*, ofs_triangles, ofs_adjacency: uint
-    num_joints*, ofs_joints: uint
-    num_poses*, ofs_poses: uint
-    num_anims*, ofs_anims: uint
-    num_frames*, num_framechannels*, ofs_frames, ofs_bounds: uint
-    num_comment*, ofs_comment: uint
-    num_extensions*, ofs_extensions: uint  # these are stored as a linked list, not as a contiguous array
-
-# ofs_* fields are relative to the beginning of the header
-# ofs_* fields must be set to 0 when the particular data is empt
-
-  mesh* = object
-    namev*: uint      # unique name for the mesh, if desired
-    material*: uint  # set to a name of a non-unique material or texture
-    first_vertex*, num_vertexes*: uint
-    first_triangle*, num_triangles*: uint
-    actualTex*: GLuint # this is temporary
-
-# all vertex array entries must ordered as defined below, if present
-# i.e. position comes before normal comes before ... comes before custom
-# where a format and size is given, this means models intended for portable use should use these
-# an IQM implementation is not required to honor any other format/size than those recommended
-# however, it may support other format/size combinations for these types if it desires
-  vertexarray = object
-    form: uint   # formally known as type, type or custom name
-    flags: uint
-    format: uint # component format
-    size: uint   # number of components
-    offset: uint # offset to array of tightly packed components, with num_vertexes * size total entries
-
-  triangle = object
-    vertex: array[0..2, uint]
-
-  adjacency = object
-    triangle: array[0..2, uint]
-
-  joint* = object
-    name*: uint
-    parent*: int # parent < 0 means this is a root bone
-    translate*: array[0..2, float]
-    rotate*: array[0..3, float]
-    scale*: array[0..2, float]
-    # translate is translation <Tx, Ty, Tz>, and rotate is quaternion rotation <Qx, Qy, Qz, Qw> where Qw = -sqrt(max(1 - Qx*Qx - Qy*qy - Qz*qz, 0))
-    # rotation is in relative/parent local space
-    # scale is pre-scaling <Sx, Sy, Sz>
-    # output = (input*scale)*rotation + translation
-
-
-  pose* = object
-    parent*: int # parent < 0 means this is a root bone
-    channelmask*: uint # mask of which 9 channels are present for this joint pose
-    channeloffset*: array[0..9, float]
-    channelscale*: array[0..9, float]
-    # channels 0..2 are translation <Tx, Ty, Tz> and channels 3..5 are quaternion rotation <Qx, Qy, Qz, Qw> where Qw = -sqrt(max(1 - Qx*Qx - Qy*qy - Qz*qz, 0))
-    # rotation is in relative/parent local space
-    # channels 6..8 are scale <Sx, Sy, Sz>
-    # output = (input*scale)*rotation + translation
-
-  IQM = enum # vertex array type
-    POSITION     = 0  # float, 3
-    TEXCOORD     = 1  # float, 2
-    NORMAL       = 2  # float, 3
-    TANGENT      = 3  # float, 4
-    BLENDINDEXES = 4  # ubyte, 4
-    BLENDWEIGHTS = 5  # ubyte, 4
-    COLOR        = 6  # ubyte, 4
-    # all values up to CUSTOM are reserved for future use
-    # any value >= CUSTOM is interpreted as CUSTOM type
-    # the value then defines an offset into the string table, where offset = value - CUSTOM
-    # this must be a valid string naming the type
-    CUSTOM       = 0x10
-
-  cIQM = enum
-    BYTE   = 0
-    UBYTE  = 1
-    SHORT  = 2
-    USHORT = 3
-    INT    = 4
-    UINT   = 5
-    HALF   = 6
-    FLOAT  = 7
-    DOUBLE = 8
-  #frames[] # frames is a big unsigned short array where each group of framechannels components is one frame
-
-  anim* = object
-    name*: uint
-    first_frame*, num_frames*: uint
-    framerate*: float
-    flags*: uint
-
-  bounds* = object
-    bbmins*, bbmaxs*: array[0..2, float] # the minimum and maximum coordinates of the bounding box for this animation frame
-    xyradius*, radius*: float # the circular radius in the X-Y plane, as well as the spherical radius
-
-#char text[] # big array of all strings, each individual string being 0 terminated
-#char comment[]
-
-  extension = object
-    name: uint
-    num_data, ofs_data: uint
-    ofs_extensions: uint  # pointer to next extension
-
-
-# vertex data is not really interleaved, but this just gives examples of standard types of the data arrays
-#  vertex = object
-#    position: array[0..2, float]
-#    texcoord: array[0..1, float]
-#    normal: array[0..2, float]
-#    tangent: array[0..3, float]
-#    blendindices, blendweights, color: array[0..3, uint8]
-
-  iqmData* = object
-    h*: header
-    meshes*: seq[mesh]
-    verticies*: seq[float32]
-    indicies*: seq[int32]
-    normals*: seq[float32]
-    texCoords*: seq[float32]
-    tangents*: seq[float32]
-    blendindexes*: seq[uint8]
-    blendweights*: seq[uint8]
-    colors*: seq[uint8]
-
-    text*: string
-
-    joints*: seq[joint]
-    poses*: seq[pose]
-    anims*: seq[anim]
-    boundries*: bounds
-
-    baseframes*: seq[Mat4]
-    inverseframes*: seq[Mat4]
-    frames*: seq[Mat4]
-
-proc iqmLoadHeader(fs: FileStream): header =
+proc iqmLoadHeader(fs: FileStream): iqmHeader =
   result.magic = ""
   for i in 0..15: #low(result.magic)..high(result.magic) :
     result.magic = result.magic & fs.readChar()
@@ -208,7 +67,7 @@ proc loadVAO(fs: FileStream, data: var iqmData): bool = #VAO -> Vertex Array Obj
   fs.setPosition(data.h.ofs_vertexarrays.int)
   var
     curPosition = fs.getPosition()
-    va = vertexarray()
+    va = iqmVertexArray()
 
   for j in 1..data.h.num_vertexarrays.int :
     va.form = fs.readInt32().uint
@@ -297,13 +156,13 @@ proc loadTris(fs: FileStream, data: var iqmData) =
 
 proc loadMeshes(fs: FileStream, data: var iqmData) =
   let n = data.h.num_meshes.int #number of meshs
-  data.meshes = newSeq[mesh](n) #initialize it here to save cycles
+  data.meshes = newSeq[iqmMesh](n) #initialize it here to save cycles
   # there could be some vertex corruption, so if that is teh case we don't want
   # to initialize for nothing
 
   fs.setPosition(data.h.ofs_meshes.int)
   for i in 0..(n-1) :
-    data.meshes[i] = mesh()
+    data.meshes[i] = iqmMesh()
     data.meshes[i].namev = fs.readInt32().uint
     data.meshes[i].material = fs.readInt32().uint
     data.meshes[i].first_vertex = fs.readInt32().uint
@@ -322,7 +181,7 @@ proc loadText(fs: FileStream, data: var iqmData) =
 
 proc loadBoundries(fs: FileStream, data: var iqmData) =
   # initialize our data
-  data.boundries = bounds()
+  data.boundries = iqmBounds()
   if (data.h.num_frames.int > 0) : #iqm won't calculate bounding boxes for static objects
     fs.setPosition(data.h.ofs_bounds.int)
     data.boundries.bbmins[0] = fs.readFloat32()
@@ -379,12 +238,12 @@ proc loadIQM(fs: FileStream, data: var iqmData): bool =
 
 proc loadJoints(fs: FileStream, data: var iqmData) =
   #Initialize our data
-  data.joints = newSeq[joint](data.h.num_joints)
+  data.joints = newSeq[iqmJoint](data.h.num_joints)
 
   let n = data.h.num_joints.int #number of meshes
   fs.setPosition(data.h.ofs_joints.int)
   for i in 0..(n-1) :
-    data.joints[i] = joint()
+    data.joints[i] = iqmJoint()
     data.joints[i].name = fs.readInt32().uint
     data.joints[i].parent = fs.readInt32().int
     for j in 0..2 :
@@ -407,11 +266,11 @@ proc loadJoints(fs: FileStream, data: var iqmData) =
 
 proc loadPoses(fs: FileStream, data: var iqmData) =
   # initialize our data
-  data.poses = newSeq[pose](data.h.num_poses)
+  data.poses = newSeq[iqmPose](data.h.num_poses)
   let n = data.h.num_poses.int #number of meshes
   fs.setPosition(data.h.ofs_poses.int)
   for i in 0..(n-1) :
-    data.poses[i] = pose()
+    data.poses[i] = iqmPose()
     data.poses[i].parent = fs.readInt32()
     data.poses[i].channelmask = fs.readInt32().uint
     for j in 0..9 :
@@ -421,7 +280,7 @@ proc loadPoses(fs: FileStream, data: var iqmData) =
 
 proc reCalcAnims(fs: FileStream, data: var iqmData) =
   var
-    p: pose
+    p: iqmPose
     rotate: Quat
     translate, scale: Vec3
 
@@ -473,11 +332,11 @@ proc loadIQMAnims(fs: FileStream, data: var iqmData): bool =
   # init
   if (data.h.num_poses.int != data.h.num_joints.int) :
     return false
-  data.anims = newSeq[anim](data.h.num_anims)
+  data.anims = newSeq[iqmAnim](data.h.num_anims)
   let n = data.h.num_anims.int #number of meshs
   fs.setPosition(data.h.ofs_anims.int)
   for i in 0..(n-1) :
-    data.anims[i] = anim()
+    data.anims[i] = iqmAnim()
     data.anims[i].name = fs.readInt32().uint
     data.anims[i].first_frame = fs.readInt32().uint
     data.anims[i].num_frames = fs.readInt32().uint

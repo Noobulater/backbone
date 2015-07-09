@@ -1,32 +1,22 @@
 #Written by Matt Nichols
 #Contributions by Aaron Bentley
 import globals
+import engine/types
 import engine/coords/matrix, engine/coords/vector
-
-type
-  Entity* = ref object of RootObj
-    pos*: Vec3
-    angle*: Vec3
-    scale*: Vec3
-    matrix*, rot*: Mat4
-    parent*: Entity
-    #Basic motion
-    angleVel*: Vec3
-    vel*: Vec3
-    #view Position, for when a player is watching this entity
-    viewOffset*: Vec3
 
 var entities* = newSeq[Entity]()
 
 proc newEntity*(): Entity = Entity()
 
-# Sarts the tracking of this entity.
+# Starts the tracking of this entity.
 method track*(this: Entity): Entity =
+  this.isValid = true
   entities.add(this)
   this
 
 # Stops the tracking of this entity.
 method untrack*(this: Entity) =
+  this.isValid = false
   entities.delete(entities.get(this))
 
 # Recalculates the transform matrix.

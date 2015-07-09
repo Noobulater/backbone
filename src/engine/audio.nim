@@ -1,5 +1,6 @@
 #written by Aaron Bentley 5/24/15
 import sdl2, sdl2/mixer
+import types
 
 # THIS SECTION OPENS UP THE AUDIO SO THAT IT CAN SUPPORT WAV FORMATS
 # TODO : Modify this section to allow for dynamic format loading
@@ -15,16 +16,6 @@ proc destroy*() =
 ###############
 ##SND METHODS##
 ###############
-type
-  SND* = ref object of RootObj
-    playing: bool
-    volume: cint
-    data: ChunkPtr
-    rate: cint
-    format: uint16
-    buffers: cint
-    channels: cint #internal use
-    channel: cint
 
 proc Sound*(filePath: string): SND = # Creates the sound
   result = SND()

@@ -2,16 +2,10 @@
 #Contributions from Aaron Bentley
 import opengl, math, strutils
 import globals, entity
+import engine/types
 import engine/glx, engine/camera
 import engine/coords/vector, engine/coords/matrix
 import engine/parser/iqm
-
-type
-  Model* = ref object of Entity
-    program*: Program
-    material*: Material
-    mesh*: Mesh
-    meshPath*: string
 
 var models*: seq[Model] = @[]
 
@@ -22,18 +16,23 @@ method draw*(this: Model) =
   this.material.use(this.program)
   this.mesh.use()
 
-
-# Sarts the tracking of this entity.
+# Starts the tracking of this entity.
 method track*(this: Model): Model =
   discard entity.track(this)
   models.add(this)
-  addDraw(proc() = this.draw())
+
+  proc tempDraw(): bool =
+    if (this.isValid) :
+      this.draw()
+    return this.isValid
+
+  addDraw(tempDraw)
   this
 
 # Stops the tracking of this entity.
 method untrack*(this: Model) =
-  entity.untrack(this)
   models.delete(models.get(this))
+  procCall entity.untrack(this)
 
 method setModel*(this: Model, filePath: string) =
   if (find(filePath, ".iqm") > 0) :

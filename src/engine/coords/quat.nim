@@ -1,8 +1,6 @@
 #Written by Aaron Bentley
 import math, complex
-
-type Quat* = object
-  d*: array[4, float]
+import engine/types
 
 proc quat*(x, y, z, w: float): Quat =
   result = Quat()

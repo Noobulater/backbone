@@ -2,6 +2,7 @@
 #Modified by Aaron Bentley
 import opengl
 import globals
+import types
 import coords/matrix, coords/vector
 import physical/entity
 

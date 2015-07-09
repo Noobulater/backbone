@@ -2,6 +2,7 @@
 #Purpose: This file contains commonly used variables, and also
 #convience functions to make calculations/code more concise
 import sdl2
+import engine/types
 
 proc getTime(): float =
   return getTicks().float/1000
@@ -15,20 +16,6 @@ var
   alive* = true
   curTime* = getTime # current time counter
   curTicks* = getTicks
-
-type
-  pType* = enum
-    pAABB, pOBB, pSPHERE, pCYLINDER, pPOLYGON
-    # Type of physics object
-    # 1 AABB
-    # 2 OBB
-    # 3 SPHERE
-    # 4 CYLINDER
-    # 5 POLYGON
-  inputCode* = enum
-    PRIMARYFIRE, SECONDARYFIRE, FORWARD, BACKWARD, STRAFELEFT, STRAFERIGHT, JUMP, CROUCH
-  Colr* = object
-    r*,g*,b*,a*: int
 
 proc Color*(r,g,b,a: float): Colr = Colr(r: (r*255.0).int, g: (g*255.0).int, b: (b*255.0).int, a: (a*255.0).int)
 proc Color*(r,g,b,a: int): Colr = Colr(r: r, g: g, b: b, a: a)

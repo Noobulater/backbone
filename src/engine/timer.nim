@@ -1,13 +1,6 @@
 #Written by Aaron Bentley 5/23/15
 import globals
-
-type
-  timeObj = ref object of RootObj
-    nextCall*: float
-    delay*: float
-    call*: proc()
-    count*: int #number of times its been executed
-    reps*: int #number of times it should be executed
+import types
 
 var timeSeq: seq[timeObj] = @[]
 

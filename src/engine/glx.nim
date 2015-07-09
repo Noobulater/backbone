@@ -2,6 +2,7 @@
 import os, times, math, tables, strutils
 import opengl, glu
 import globals
+import types
 import coords/matrix, coords/vector, coords/quat, pointer_arithm
 import parser/bmp, parser/iqm
 
@@ -29,27 +30,20 @@ proc attribI*(pos: uint32, size,stride: GLint, data: ptr) =
   glVertexAttribIPointer(pos, size, cGL_INT, 0'i32, data)
 
 #DRAW CALLS
-var draws*: seq[proc()] = @[]
-proc addDraw*(draw: proc()) =
+var draws*: seq[proc(): bool] = @[]
+proc addDraw*(draw: proc(): bool) =
   draws.add(draw)
 
 proc drawScene*() =
+  var removeIDs = newSeq[int]()
   glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
   for i in low(draws)..high(draws):
-    draws[i]()
-
-#OBJECT MANAGEMENT
-
-type Unchecked* {.unchecked.}[T] = array[1, T]
-
-type Resource* = ref object of RootObj
-method use*(this: Resource) = discard
-method stop*(this: Resource) = discard
-method destroy*(this: Resource) = discard
-
-type Program* = ref object of Resource
-  handle*: uint32
-  uniforms: Table[string, int32]
+    if (not draws[i]()) : # if it returns true, mark it for removal
+      removeIDs.add(i)
+  # We can't remove it while we are iterating through, so remove it after
+  # To ensure safety of data
+  for i in low(removeIDs)..high(removeIDs) :
+    draws.delete(removeIDs[removeIDs.len-1 - i])
 
 method use*(this: Program) = glUseProgram(this.handle)
 
@@ -86,13 +80,9 @@ proc initProgram*(vertexFile: string, fragmentFile: string): Program =
   glUniform1i(glGetUniformLocation(result.handle, "texture"), 0)
   glUniform1i(glGetUniformLocation(result.handle, "normalmap"), 1)
 
-type Material* = ref object of Resource
-  texture*: uint32
-  normal*: uint32
-  ambient*: Vec3
-  diffuse*: Vec3
-  specular*: Vec3
-  shine*: float32
+method use*(this: Resource) = discard
+method stop*(this: Resource) = discard
+method destroy*(this: Resource) = discard
 
 method use*(this: Material, program: Program) =
   glActiveTexture(GL_TEXTURE0)
@@ -120,18 +110,45 @@ proc initMaterial*(file: string, normalFile: string): Material =
   result.specular = vec3(1.0, 1.0, 1.0)
   result.shine = 40.0'f32
 
-proc initMaterial*(file: string): Material = initMaterial(file, replace(file, ".bmp", "_normal.bmp"))
+proc initMaterial*(file: string): Material = initMaterial(file, file)
 
-type Mesh* = ref object of Resource
-  handle*: uint32
-  data*: iqmData
-  playRate*: float
-  curFrame*: int #current frame to play
-  blend*: float
-  outFrame*: seq[Mat4]
-  outVerts*, outNorms*: seq[float32]
-  lastTime: float # internal use
-  currentAnim: int
+var i: seq[uint32] = @[0'u32,1,2,
+  0,3,1,
+  4,5,6,
+  4,7,5,
+  8,9,10,
+  8,11,9,
+  12,13,14,
+  12,14,15,
+  16,17,18,
+  16,18,19,
+  20,21,22,
+  20,22,23]
+var v: seq[float32] = @[
+  0.0'f32,0.0,0.0,
+  1.0,1.0,0.0,
+  1.0,0.0,0.0,
+  0.0,1.0,0.0,
+  0.0,0.0,0.0,
+  0.0,1.0,1.0,
+  0.0,1.0,0.0,
+  0.0,0.0,1.0,
+  0.0,1.0,0.0,
+  1.0,1.0,1.0,
+  1.0,1.0,0.0,
+  0.0,1.0,1.0,
+  1.0,0.0,0.0,
+  1.0,1.0,0.0,
+  1.0,1.0,1.0,
+  1.0,0.0,1.0,
+  0.0,0.0,0.0,
+  1.0,0.0,0.0,
+  1.0,0.0,1.0,
+  0.0,0.0,1.0,
+  0.0,0.0,1.0,
+  1.0,0.0,1.0,
+  1.0,1.0,1.0,
+  0.0,1.0,1.0]
 
 method calcAnim*(this: Mesh) =
   var
@@ -207,7 +224,7 @@ method use*(this: Mesh) =
   if (this.handle.int > 0) :
     if (this.data.meshes[0].actualTex.int > 0) :
       glActiveTexture(GL_TEXTURE0)
-      glBindTexture(GL_TEXTURE_2D, this.data.meshes[0].actualTex)
+      glBindTexture(GL_TEXTURE_2D, GLuint(this.data.meshes[0].actualTex.int))
     glDrawElements(GL_TRIANGLES, this.data.h.num_vertexes.int32*3, GL_UNSIGNED_INT, nil)
   else :
     # Need to unbind the buffer to use Vertex pointers
@@ -250,7 +267,7 @@ method use*(this: Mesh) =
     for i in 0..high(meshes) :
       if (this.data.meshes[i].actualTex.int > 0) :
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, this.data.meshes[i].actualTex)
+        glBindTexture(GL_TEXTURE_2D, GLuint(this.data.meshes[i].actualTex.int))
       glDrawElements(GL_TRIANGLES, meshes[i].num_triangles.int32*3, GL_UNSIGNED_INT, indicies[meshes[i].first_triangle.int*3].addr)
     glDisableClientState(GL_VERTEX_ARRAY)
     glDisableClientState(GL_NORMAL_ARRAY)
@@ -285,6 +302,8 @@ proc initMesh*(filePath: string, program: uint32): Mesh =
       var path = strAtIndex(data.text, index)
       if (find(path, ".tga") > 0) :
         path = replace(path, ".tga", "")
+      if (find(path, ".png") > 0) :
+        path = replace(path, ".png", "")
       if (find(path, ".bmp") <= 0) :
         path = path & ".bmp"
       path = "materials/" & replace(filePath, ".iqm", "") & "/" & path

@@ -4,15 +4,11 @@
 # From dictionary.com
 import math
 import globals
+import engine/types
 import physObj
 import engine/camera, engine/controls
 import engine/coords/vector, engine/coords/matrix
 import sdl2/private/keycodes
-
-type
-  Dray* = ref object of PhysObj
-    maxSpeed: float # Regular X/Z motion
-    maxLift: float # Jumping
 
 var drays*: seq[Dray] = @[]
 
@@ -24,16 +20,16 @@ method track*(this: Dray): Dray =
 
 # Stops the tracking of this entity.
 method untrack*(this: Dray) =
-  physObj.untrack(this)
   drays.delete(drays.get(this))
+  procCall physObj.untrack(this)
 
 # Initializes this entity.
 method init*(this: Dray): Dray =
   discard physObj.init(this)
   this.maxSpeed = 10.0
-  this.maxLift = 1.0
-  this.drag = 10.0
-  this.gravity = 0.5
+  this.maxLift = 5.0
+  this.drag = 0.5
+  this.gravity = 1.0
   this
 
 proc newDray*(): Dray = Dray().init.track()

@@ -11,10 +11,10 @@ uniform vec3 camera_pos = vec3(0, 0, 0);
 uniform sampler2D texture;
 uniform sampler2D normalmap;
 
-uniform vec3 light_pos = vec3(0.0, 0.0, 0.0);
+uniform vec3 light_pos = vec3(0.0, 50.0, 0.0);
 uniform vec3 light_ambient = vec3(0.1, 0.1, 0.3);
-uniform vec3 light_difuse = vec3(0.9, 0.9, 0.8);
-uniform vec3 light_specular = vec3(0.8, 0.8, 0.7);
+uniform vec3 light_diffuse = vec3(0.9, 0.9, 0.8);
+uniform vec3 light_specular = vec3(0.2, 0.2, 0.3);
 
 uniform vec3 mat_ambient = vec3(1.0, 1.0, 1.0);
 uniform vec3 mat_diffuse = vec3(1.0, 1.0, 1.0);
@@ -43,7 +43,7 @@ void main()
 
   // Diffuse
   float diffuse_dot = max(0.0, dot(mat_normal, light_dir));
-  vec3 diffuse = diffuse_dot * mat_color.rgb *  mat_diffuse * light_difuse;
+  vec3 diffuse = diffuse_dot * mat_color.rgb *  mat_diffuse * light_diffuse;
 
   // Specular
   float specular_r = 0.0;

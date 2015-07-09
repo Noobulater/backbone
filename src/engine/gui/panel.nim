@@ -1,35 +1,12 @@
 #Written by Aaron Bentley 5/27/15
 import opengl, math
 import globals
+import engine/types
 import surface
 import engine/coords/matrix, engine/coords/vector
 
-######################
-########PANELS########
-######################
-#GLOBAL STUFF (but local to this file)
-#FORWARD DECLARATIONS
-type
-  panel* = ref object of Rootobj
-    x*: float
-    y*: float
-    width*: float
-    height*: float
-    textureID*: int #if it has a texture
-    drawFunc*: proc(x,y,width,height: float)#this is the function to call to draw it
-    doClick*: proc(button: int, pressed: bool, x,y: float)
-    visible*: bool
-    crop*: bool # forces content to remain inside the panel
-    children*: seq[panel]
-    parent*: panel
-
-  screen* = ref object of Rootobj
-    pos*,ang*, scale*: Vec3
-    matrix: Mat4
-    children*: seq[panel] #this is the function to call to draw it, happens after rotation
-
-var sManager: seq[screen] # screens that display panels
-var mainScreen*: screen
+var sManager: seq[Screen] # screens that display panels
+var mainScreen*: Screen
 
 proc default(): proc(x,y,width,height: float) =
   return proc(x,y,width,height: float) =
@@ -40,8 +17,8 @@ proc defaultClick(): proc(button: int, pressed: bool, x,y: float) =
   return proc(button: int, pressed: bool, x,y: float) =
     echo("Clicked")
 
-proc newPanel*(x,y,width,height: float): panel =
-  result = panel()
+proc newPanel*(x,y,width,height: float): Panel =
+  result = Panel()
   result.x = x
   result.y = y
   result.width = width
@@ -55,8 +32,8 @@ proc newPanel*(x,y,width,height: float): panel =
   result.children = @[]
   mainScreen.children.add(result)
 
-proc newPanel*(x,y,width,height: float, parent: panel): panel =
-  result = panel()
+proc newPanel*(x,y,width,height: float, parent: Panel): Panel =
+  result = Panel()
   result.x = x
   result.y = y
   result.width = width
@@ -76,7 +53,7 @@ proc newPanel*(x,y,width,height: float, parent: panel): panel =
 ######################
 
 # Recalculates the transform matrix.
-method calcMatrix*(this: screen) =
+method calcMatrix*(this: Screen) =
   this.matrix = identity()
   this.matrix = this.matrix.translate(this.pos)
   this.matrix = this.matrix.scale(this.scale)
@@ -85,37 +62,37 @@ method calcMatrix*(this: screen) =
   this.matrix = this.matrix.rotate(this.ang[0], vec3(1, 0, 0))
 
 # Sets the pos of the screen
-method setPos*(this: screen, v: Vec3) =
+method setPos*(this: Screen, v: Vec3) =
   this.pos = v
   this.calcMatrix()
 
 # Sets the angle of the screen
-method setAngle*(this: screen, a: Vec3) =
+method setAngle*(this: Screen, a: Vec3) =
   this.ang = a
   this.calcMatrix()
 
 # Sets the angle of the screen
-method setScale*(this: screen, a: Vec3) =
+method setScale*(this: Screen, a: Vec3) =
   this.scale = a
   this.calcMatrix()
 
 # This creates a new screen. Screens are just entities in the world that project
 # Their children's draw code onto their location
-proc newScreen*(xPos,yPos,zPos,pitch,yaw,roll: float): screen =
-  result = screen()
+proc newScreen*(xPos,yPos,zPos,pitch,yaw,roll: float): Screen =
+  result = Screen()
   # Entities handle a ton of matrix calculation, might as well just use them
   result.setPos(vec3(xPos, yPos, zPos))
   result.setAngle(vec3(pitch, yaw, roll))
   result.setScale(vec3(1,1,1))
   result.children = @[] # no panels currently
 
-proc newScreen*(pos, ang: Vec3): screen =
+proc newScreen*(pos, ang: Vec3): Screen =
   return newScreen(pos.x, pos.y, pos.z, ang.p, ang.y, ang.r)
 
 mainScreen = newScreen(0.0, 0.0, 0.0,  0.0, 0.0, 0.0)
 
-proc dive(cPanel: panel) =
-  var cur: panel
+proc dive(cPanel: Panel) =
+  var cur: Panel
   if (cPanel.crop) :
     glScissor(GLint(cPanel.x), GLint(cPanel.y),  GLsizei(cPanel.width), GLsizei(cPanel.height))
 
@@ -125,30 +102,28 @@ proc dive(cPanel: panel) =
       surface.setCurPos(cPanel.x + cur.x, cPanel.y + cur.y)
       cur.drawFunc(cur.x, cur.y, cur.width, cur.height)
 
-proc dive(cScreen: screen) = #Dive because its going to do a depth first call order
-  var cur: panel
+proc dive(cScreen: Screen) = #Dive because its going to do a depth first call order
+  var cur: Panel
   for i in low(cScreen.children)..high(cScreen.children):
     cur = cScreen.children[i]
     surface.setCurPos(cur.x, cur.y)
     cur.drawFunc(cur.x, cur.y, cur.width, cur.height)
     cur.dive()
 
-
-
-proc getAbsoluteX*(cPanel: panel): float =
+proc getAbsoluteX*(cPanel: Panel): float =
   if (cPanel.parent == nil) :
     return 0.0
   else :
     return cPanel.parent.x + getAbsoluteX(cPanel.parent)
 
-proc getAbsoluteY*(cPanel: panel): float =
+proc getAbsoluteY*(cPanel: Panel): float =
   if (cPanel.parent == nil) :
     return 0.0
   else :
     return cPanel.parent.y + getAbsoluteY(cPanel.parent)
 
 var pixelArray: array[0..3,GLfloat]
-proc collide(cPanel: panel, x,y: float): bool = #tests whether or not a panel has been clicked on
+proc collide(cPanel: Panel, x,y: float): bool = #tests whether or not a panel has been clicked on
   pixelArray[0] = 0
   pixelArray[1] = 0
   pixelArray[2] = 0
@@ -172,8 +147,6 @@ proc drawPrep() =
   glEnable(GL_SCISSOR_TEST)
   glDisable(GL_TEXTURE_2D)
   glDisable(GL_CULL_FACE)
-  glEnable(GL_BLEND)
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
   glMatrixMode(GL_MODELVIEW)
@@ -182,14 +155,13 @@ proc drawPrep() =
 proc drawCleanup() =
   glEnable(GL_CULL_FACE)
   glEnable(GL_TEXTURE_2D)
-  glDisable(GL_BLEND)
   glDisable(GL_SCISSOR_TEST)
 
 proc panelsDraw*() =
   drawPrep()
   mainScreen.dive()
 
-  #var cScreen: screen # current Screen
+  #var cScreen: Screen # current Screen
   #for i in low(sManager)..high(sManager):
   #  cScreen = sManager[i]
     #glMatrixMode(GL_PROJECTION)
@@ -204,9 +176,9 @@ proc panelsDraw*() =
   drawCleanup()
 
 #Panel I/O
-proc checkCollision(cPanel: panel, x,y: float): panel =
+proc checkCollision(cPanel: Panel, x,y: float): Panel =
   if (cPanel.children.len > 0) :
-    var cur: panel
+    var cur: Panel
     for i in low(cPanel.children)..high(cPanel.children):
       cur = cPanel.children[i]
       if (cur.collide(x,y)) :
@@ -215,7 +187,7 @@ proc checkCollision(cPanel: panel, x,y: float): panel =
 
 proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
   var
-    cur: panel
+    cur: Panel
     xCoords, yCoords: float
     xMin,xMax: float
     yMin,yMax: float
@@ -227,8 +199,8 @@ proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
       checkCollision(cur,x,y).doClick(button, pressed, x,y) # call the do click
 
 
-  #var cScreen: screen
-  #var pro = perspective(fov = 50.0, aspect = (scrW/scrH).float, near = 0.05, far = 10000.0)
+  #var cScreen: Screen
+  #var pro = perspective(fov = 50.0, aspect = (scrW/scrH).float, near = 0.05, far = inf)
   #for i in low(sManager)..high(sManager):
   #  cScreen = sManager[i]
   #  glMatrixMode(GL_PROJECTION)

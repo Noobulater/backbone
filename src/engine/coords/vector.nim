@@ -1,9 +1,7 @@
 #Written by Matt Nichols
 #Modified by Aaron Bentley
 import math, complex
-
-type Vec3* = object
-  d*: array[3, float]
+import engine/types
 
 proc vec3*(x, y, z: float): Vec3 =
   result = Vec3()
@@ -101,6 +99,13 @@ proc cross*(a, b: Vec3): Vec3 = vec3(
   a[2]*b[0] - a[0]*b[2],
   a[0]*b[1] - a[1]*b[0])
 
+proc min*(a,b: Vec3): Vec3 =
+  for i in low(a.d)..high(a.d) :
+    if (a[i] < b[i]) :
+      result[i] = a[i]
+    else :
+      result[i] = b[i]
+
 proc max*(a,b: Vec3): Vec3 =
   for i in low(a.d)..high(a.d) :
     if (a[i] > b[i]) :
@@ -158,7 +163,7 @@ proc clamp*(a: Vec3, lowamt, highamt: float): Vec3 =
       result[i] = highamt
     if (a[i] < lowamt) :
       result[i] = lowamt
-      
+
 proc clampXYZamp*(a: Vec3, xamt, yamt, zamt: float): Vec3 =
   result = vec3(a[0],a[1],a[2])
   if (a[0] > xamt) :
