@@ -49,10 +49,10 @@ proc loadFont*(fontName: string, fontSize, fontStyle, fontOutline: cint ) =
   setFontStyle(curFont, fontStyle)
   setFontOutline(curFont, fontOutline)
 
-proc loadFont*(fontName: string, fontSize: cint ) =
+proc loadFont*(fontName: string, fontSize: cint) =
   loadFont(fontName, fontSize, TTF_STYLE_NORMAL, 0)
 
-proc loadFont*(fontName: string, fontSize, fontStyle: cint ) =
+proc loadFont*(fontName: string, fontSize, fontStyle: cint) =
   loadFont(fontName, fontSize, fontStyle, 0)
 
 proc styleFont*(styleType: string) =
@@ -133,9 +133,9 @@ proc rect*(x,y: float, width,height: int) = rect(x.float, y.float, width.float, 
 proc orect*(x,y,width,height: float) =
   glTranslatef(0,0,-0.00001) # push this rect back just slightly to avoid z fighting
   glBegin(GL_LINE_LOOP)
-
+  #There are random offsets in here to fit this to a RECT. Makes outlining convient
   glColor4f(dRed, dGreen, dBlue, dAlpha)
-  glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
+  glVertex3f((curX + x + 1.0)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
   glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
@@ -144,7 +144,7 @@ proc orect*(x,y,width,height: float) =
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
   glColor4f(dRed, dGreen, dBlue, dAlpha)
-  glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
+  glVertex3f((curX + x + width + 1.0)/(scrW/2) - 1.0, (curY + y + 1.0)/(scrH/2) - 1.0, 0)
 
   glEnd()
 
@@ -216,6 +216,7 @@ proc drawText*(txt: string, x,y:float, color: Colr) =
 
 proc drawText*(txt: string, x,y:float, color: Colr, oColor: Colr) =
   setColor(oColor)
+  setText(txt)
   let outlineSize = 1
   for i in 1..outlineSize :
     text(x+i.float,y.float)

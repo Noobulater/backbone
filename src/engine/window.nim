@@ -10,9 +10,12 @@ import camera, audio, timer, glx, simulation, controls
 import gui/panel
 import coords/matrix, coords/vector
 import parser/bmp
-import gui/surface
 import physical/dray
 import world
+import structures/details/itemUses
+import structures/player
+import structures/character
+import game/game
 
 proc resized(width, height: int) =
   scrW = width
@@ -53,40 +56,32 @@ proc init*() =
   txtId = parseBmp("bmps/notbadd.bmp")
   dt = 0.0
 
-  simulation.init()
+  player.initLocalPlayer()
   camera.init()
   world.init()
+  simulation.init()
+
+  game.init()
 
   resized(scrW, scrH)
 
 proc update(dt: float) =
   timer.update(dt)
-  audio.update(dt)
   simulation.update(dt)
-
-var z = newPanel(10,10,150,30)
-
-proc drurr(x,y,width,height: float) =
-  setColor(255, 0, 0, 55)
-  rect(0.0, 0.0, width, height)
-
-  setColor(255, 255, 255, 55)
-  rect(2.0, 2.0, width-4, height-4)
-
-  drawText("Trebuchet", 0.0,0.0, globals.Color(255,255,255,255), globals.Color(0,0,0,255))
-z.drawFunc = drurr
+  audio.update(dt)
+  panel.update(dt)
+  game.update(dt)
 
 proc display() =
   drawScene()
-  #panelsDraw()
+  panelsDraw()
 
 #Handles Mouse Button Input ( LeftMouse, RightMouse, doesn't handle Mousewheel )
-proc mouseInput( evt: MouseButtonEventPtr ) =
+proc mouseInput(evt: MouseButtonEventPtr) =
   # handle all the SDL enums in this handler, that way we don't have to include
   # SDL2 in every file we want to manipulate/utilize input
 
   var b: int # contains the button code
-
   case evt.button :
   of ButtonLeft : b = 0
   of ButtonRight : b = 1
@@ -97,16 +92,17 @@ proc mouseInput( evt: MouseButtonEventPtr ) =
 
   if (evt.kind == MouseButtonUp):
     simulation.click()
-    #panelsMouseInput( b, true, evt.x.float, evt.y.float )
+    # We put true because it is released
+    panelsMouseInput(b, true, evt.x.float, evt.y.float)
 
-  #we might not even need type, but i wrote it out anyways. pressing delete is alot easier
+proc mouseWheeled(evt: MouseWheelEventPtr) =
+  var x,y: cint
+  GetMouseState(x, y)
+  panelsWheeled(x.float, y.float, evt.x.float, evt.y.float)
+
+#we might not even need type, but i wrote it out anyways. pressing delete is alot easier
 let camSpeed = 50.0
 proc mouseMotion( evt: MouseMotionEventPtr ) =
-  #Uint8 type;
-  #Uint8 state;
-  #Uint16 x, y;
-  #Sint16 xrel, yrel;
-  #discard
   #ShowCursor(mainmenu.cursor)
   #if (not mainmenu.cursor):
   setViewAngle(max(min(camera.ang.p + evt.yrel.float * camSpeed * dt, 89.9), -89.9), camera.ang.y + evt.xrel.float * camSpeed * dt)
@@ -119,7 +115,7 @@ proc keyInput(evt: KeyboardEventPtr) =
   #of KeyDown: action = "start"
   #of KeyUp: action = "stop"
   #else: action = "else"
-  var ent = Dray(camera.viewEntity)
+  var ent = Dray(LocalPlayer.viewEntity)
   case evt.keysym.sym
   of K_W:
     if (ent == nil):
@@ -179,6 +175,8 @@ proc run*() =
         keyInput(evt.key)
       if evt.kind == MouseButtonDown or evt.kind == MouseButtonUp:
         mouseInput(evt.button)
+      if evt.kind == MouseWheel:
+        mouseWheeled(evt.wheel)
       if evt.kind == MouseMotion:
         mouseMotion(evt.motion)
 

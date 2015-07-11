@@ -9,7 +9,6 @@ import physical/entity
 var
   pos*,ang*: Vec3
   view*,proj*: Mat4
-  viewEntity*: Entity
   active: bool
 
 proc cameraAspect*(aspect: float) =
@@ -20,13 +19,13 @@ proc update*() =
   var pYaw = ang.y
   var pRoll = ang.r
   var pPos = pos
-  if (viewEntity != nil):
+  if (LocalPlayer.viewEntity != nil):
     # let pPos = driver.pos * -1 + driver.matrix.forward() * 0.55 + driver.matrix.up() * 0.4
-    pPitch += viewEntity.angle[0]
-    pYaw += -viewEntity.angle[1]
-    pPos = viewEntity.matrix * (pos + viewEntity.viewOffset)
+    pPitch += LocalPlayer.viewEntity.angle[0]
+    pYaw += -LocalPlayer.viewEntity.angle[1]
+    pPos = LocalPlayer.viewEntity.pos + LocalPlayer.viewEntity.viewOffset
+    camera.pos = pPos
   view = identity().rotate(pPitch, vec3(1, 0, 0)) * identity().rotate(pYaw, vec3(0, 1, 0)) * identity().translate(pPos * -1)
-
 
 proc setViewAngle*(p,y,r:float) =
   camera.ang[0] = p

@@ -42,8 +42,11 @@ method setModel*(this: Model, filePath: string) =
     echo("ERROR: MODEL NOT FOUND")
 
 # Initializes this entity.
+
 method init*(this: Model): Model =
   discard entity.init(this)
+  this.program = worldShader
+  this.material = defMaterial
   this
 
 #method update*(this: Model, dt: float) =

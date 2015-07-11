@@ -6,7 +6,7 @@ import sdl2, sdl2/mixer, tables
 ######################
 type
   inputCode* = enum
-    PRIMARYFIRE, SECONDARYFIRE, FORWARD, BACKWARD, STRAFELEFT, STRAFERIGHT, JUMP, CROUCH
+    PRIMARYFIRE, SECONDARYFIRE, RELOAD, FORWARD, BACKWARD, STRAFELEFT, STRAFERIGHT, JUMP, CROUCH
 
   Colr* = object
     r*,g*,b*,a*: int
@@ -48,11 +48,52 @@ type
 
   Character* = ref object of Container
     stats*: float #Stats # Characters have stats
-    uniqueID: int # Unique ID for the object
+    uniqueID*: int # Unique ID for the object
+    model*: string
+    activeWeapon*: WeaponData #Pointer active equipment
 
-  Inventory* = object # This contains info regarding weapons/items
-    ammos*: array[0..1, int]
-    curWeapon*: int
+  Player* = ref object of Character
+    id*: uint8 # ID of the player
+    viewEntity*: Entity
+
+  ######################
+  ######INVENTORY#######
+  ######################
+  EQSLOTS* = enum
+    PRIMARY, SECONDARY, SPECIAL, HEAD, BODY, ARM, LEG, EXTRA1, EXTRA2
+
+  ItemData* = ref object of RootObj
+    use*: proc(item: ItemData, data: Container): bool
+    remove*: proc(item: ItemData, data: Container)
+    drop*: proc(item: ItemData, data: Container)
+    name*, description*, model*, extras*: string
+    reusable*, temporary*: bool
+
+  #Extras is a string included that will be networked. It is there for adding on
+  #Important (probably unique) data that this item will use
+
+  EquipmentData* = ref object of ItemData
+    primarySlot*: int
+    secondarySlot*: int
+    equip*: proc(equip: EquipmentData, data: Container)
+    unequip*: proc(equip: EquipmentData, data: Container)
+
+  WeaponData* = ref object of EquipmentData
+    fireSound*: SND
+    #ammoType, holdType:
+    fireRate*, accuracy*, reloadTime*, nextPFire*: float
+    damage*, clipSize*, numBullets*, curPClip*: int
+    automatic*: bool
+
+    primaryFire*: proc(weapon: WeaponData, data: Container)  # only drays(Vehicles) can fire weapons
+    secondaryFire*: proc(weapon: WeaponData, data: Container)
+    reload*: proc(weapon: WeaponData, data: Container)  # only drays(Vehicles) can fire weapons
+
+  Inventory* = ref object of RootObj # This contains info regarding weapons/items
+    equipment*: array[0..high(EQSLOTS).int, EquipmentData]
+    items*: seq[ItemData]
+    slotCount*: int #optional maximum value
+
   ######################
   ########PARSERS#######
   ######################
@@ -236,12 +277,12 @@ type
   ######################
   #######PHYSICAL#######
   ######################
-  traceData* = object
+  TraceData* = object
     origin*, offset*, normal*: Vec3
     dist*: float
     ignore*: seq[PhysObj]
 
-  traceResult* = object
+  TraceResult* = object
     origin*, normal*, hitPos*, hitNormal*: Vec3
     hitEnt*: PhysObj
     hit*: bool
@@ -307,21 +348,23 @@ type
   Dray* = ref object of PhysObj # Drays can be armed
     maxSpeed*: float # Regular X/Z motion
     maxLift*: float # Jumping
-    shootPos*, viewAngles*: Vec3
+    shootPos*, shootForward*: Vec3
 
   ######################
   ########PANELS########
   ######################
-  #GLOBAL STUFF (but local to this file)
-  #FORWARD DECLARATIONS
+  MOUSE* = enum
+    NONE, LEFT, RIGHT, MIDDLE, X1, X2
+
   Panel* = ref object of Rootobj
     x*: float
     y*: float
     width*: float
     height*: float
     textureID*: int #if it has a texture
-    drawFunc*: proc(x,y,width,height: float)#this is the function to call to draw it
+    paint*: proc(x,y,width,height: float)#this is the function to call to draw it
     doClick*: proc(button: int, pressed: bool, x,y: float)
+    doMouseWheel*: proc(x,y,xVel,yVel: float)
     visible*: bool
     crop*: bool # forces content to remain inside the panel
     children*: seq[Panel]

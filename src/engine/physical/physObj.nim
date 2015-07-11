@@ -3,7 +3,6 @@ import globals
 import engine/types
 import model, entity
 import engine/coords/vector
-import engine/structures/container
 
 var physObjs*: seq[PhysObj] = @[]
 
@@ -18,16 +17,21 @@ method untrack*(this: PhysObj) =
   physObjs.delete(physObjs.get(this))
   procCall model.untrack(this)
 
+method remove*(this: PhysObj) =
+  if (this.data != nil) :
+    this.data.attached = nil #detatch from the object
+  this.untrack()
+
 # For when the entity runs out of health
 method perish*(this: PhysObj, dmginfo: Damage) =
-  this.untrack()
+  this.remove()
 
 #For when the entity takes damage
 method takeDamage*(this: PhysObj, dmginfo: Damage) =
   this.health = this.health - dmginfo.amount
   if (this.health <= 0):
     #this.perish(dmginfo)
-    this.untrack()
+    this.remove()
 
 method takeDamage*(this: PhysObj, amount: int) =
   let dmginfo = Damage(amount : amount)
@@ -91,7 +95,7 @@ method collide*(this: PhysObj, cData: colData) =
       m2 = ent2.mass
       d = m1 + m2
     if (ent1 == this) :
-      this.vel = ((v1 * ((m1 - m2)/(d)).float + v2 * ((2.0 * m2)/(d)).float))
+      this.vel = ((v1 * ((m1 - m2)/(d)).float + v2 * ((2.0 * m2)/(d)).float)) * -1.0
       this.vel = this.vel - cData.pushAxis * this.vel
       this.angleVel = vec3(0)
     else:
@@ -103,5 +107,8 @@ method setGravity*(this: PhysObj, g: float) =
 
 method setDrag*(this: PhysObj, d: float) =
   this.drag = d
+
+method solid*(this: PhysObj): bool =
+  return (this.lmin != 0.0 or this.lmax != 0.0)
 
 proc newPhysObj*(): PhysObj = PhysObj().init.track()

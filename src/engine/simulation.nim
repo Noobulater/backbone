@@ -2,7 +2,7 @@
 #The purpose of this file is to simulate physics, nothing more
 import globals, glx, math, opengl
 import types
-import physical/entity, physical/physObj, physical/model
+import physical/entity, physical/physObj, physical/model, physical/dray
 import coords/matrix, coords/vector
 import parser/bmp, parser/iqm
 import camera
@@ -11,7 +11,6 @@ import timer
 var skydome: Model
 proc init*() =
   skydome = newModel()
-  skydome.program = initProgram("phong.vert", "phong.frag")
   skydome.setModel("models/cube.iqm")
   skydome.material = initMaterial("materials/models/cube/Material.bmp")
   skydome.setScale(vec3(0.1))
@@ -20,7 +19,6 @@ proc init*() =
 #######################
 # COLLISION DETECTION #
 #######################
-
 proc minmaxAxis(axis: Vec3, vectors: varargs[Vec3]): array[0..1, float] =
   var
     aMin = Inf # should be float.max but i dont know how to do that in nim
@@ -212,7 +210,7 @@ proc traceCheckAxis*(origin, offset: Vec3, aCorners: array[0..7, Vec3], axis: Ve
 
   return (longSpan <= sumSpan)
 
-proc intRayOBB*(t: traceData, that: PhysObj): colData =
+proc intRayOBB*(t: TraceData, that: PhysObj): colData =
   result = colData(hitPos: t.offset, ent1: that, ent2: that, intersecting: false, pushDistance : 100000)
   # THIS IS TEMPORARY, ITS A BIT EXPENSIVE BECAUSE IT PERFORMS THE OBB CALCULATIONS
   # INSTEAD OF USING THE AABB TACTICS
@@ -284,29 +282,45 @@ proc intRayOBB*(t: traceData, that: PhysObj): colData =
                 return result
   return result
 
-proc traceRay*(trace: traceData): traceResult =
-  result = traceResult()
+proc traceRay*(trace: TraceData): TraceResult =
+  result = TraceResult()
   result.hitPos = trace.offset
   var minDist = trace.dist
+  var curEnt: PhysObj
   for i in low(physObjs)..high(physObjs) :
-    let res = intRayOBB(trace, physObjs[i])
-    if (res.intersecting) :
-      let dist = distance(trace.origin, res.hitPos)
-      if (dist < minDist) :
-        minDist = dist
-        result.origin = trace.origin
-        result.normal = trace.normal
-        result.hitEnt = physObjs[i]
-        result.hitPos = res.hitPos
-        result.hit = true
+    curEnt = physObjs[i]
+    if (curEnt.solid()) :
+      var ignore = false
+      for j in low(trace.ignore)..high(trace.ignore) :
+        if (curEnt == trace.ignore[j]) :
+          ignore = true
+          break
+      if (not ignore) :
+        let res = intRayOBB(trace, curEnt)
+        if (res.intersecting) :
+          let dist = distance(trace.origin, res.hitPos)
+          if (dist < minDist) :
+            minDist = dist
+            result.origin = trace.origin
+            result.normal = trace.normal
+            result.hitEnt = curEnt
+            result.hitPos = res.hitPos
+            result.hit = true
 
-proc traceRay*(origin, normal: Vec3, dist: float): traceResult = # parameters are faster
-  return traceRay(traceData(origin: origin, offset: origin + normal * dist, normal: normal, dist: dist))
+proc traceRay*(origin, normal: Vec3, dist: float): TraceResult =
+  # parameters are faster
+  return traceRay(TraceData(origin: origin, offset: origin + normal * dist, normal: normal, dist: dist))
 
 proc click*() =
-  let trace = traceRay(camera.pos, camera.view.forward(), 10)
-  if (trace.hit) :
-    skyDome.setPos(trace.hitPos)
+  var trace = TraceData()
+  trace.origin = camera.pos
+  trace.normal = camera.view.forward()
+  trace.dist = 100
+  trace.offset = trace.origin + trace.normal * trace.dist
+  trace.ignore = @[PhysObj(drays[0])]
+  let tr = traceRay(trace)
+  if (tr.hit) :
+    skyDome.setPos(tr.hitPos)
     #trace.hitEnt.takeDamage(Damage(amount: 200, origin: trace.hitPos, normal: trace.normal))
 
 #Intersecting manager

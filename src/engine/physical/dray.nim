@@ -23,41 +23,32 @@ method untrack*(this: Dray) =
   drays.delete(drays.get(this))
   procCall physObj.untrack(this)
 
+method remove*(this: Dray) =
+  physObj.remove(this)
+  this.untrack()
+
 # Initializes this entity.
 method init*(this: Dray): Dray =
   discard physObj.init(this)
   this.maxSpeed = 10.0
   this.maxLift = 5.0
   this.drag = 0.5
-  this.gravity = 1.0
+  this.gravity = 0.0
   this
 
 proc newDray*(): Dray = Dray().init.track()
 
 method input*(this: Dray, code: inputCode) =
   var newVel = vec3(0)
-  case code :
-  of PRIMARYFIRE : discard
-  of SECONDARYFIRE : discard
-  of FORWARD :
-    let c = camera.view.forward() * this.maxSpeed
-    newVel = vec3(c.x,0.0,c.z)
-  of BACKWARD :
-    let c = camera.view.forward() * -this.maxSpeed
-    newVel = vec3(c.x,0.0,c.z)
-  of STRAFELEFT :
-    let c = camera.view.right() * -this.maxSpeed
-    newVel = vec3(c.x,0.0,c.z)
-  of STRAFERIGHT :
-    let c = camera.view.right() * this.maxSpeed
-    newVel = vec3(c.x,0.0,c.z)
-  of JUMP :
-    newVel = vec3(0,this.maxLift,0)
-  of CROUCH :
-    newVel = vec3(0,-this.maxLift,0)
-
-  #this.impulse = newVel
-
+  let owner = Character(this.data)
+  if (owner == LocalPlayer and owner.activeWeapon != nil) :
+    case code :
+    of PRIMARYFIRE :
+      owner.activeWeapon.primaryFire(owner.activeWeapon, owner)
+    of SECONDARYFIRE : discard
+    of RELOAD :
+      owner.activeWeapon.reload(owner.activeWeapon, owner)
+    else: discard
 method update*(this: Dray, dt: float) =
   var newVel = vec3(0)
   let
@@ -80,6 +71,6 @@ method update*(this: Dray, dt: float) =
     newVel = newVel + vec3(0.0,this.maxLift,0.0)
   #elif (isKeyDown(K_LCTRL)) :
   #  this.vel[1] = this.vel[1] - this.maxLift
-
+  this.shootForward = forward
   this.impulse = newVel
   procCall physObj.update(this, dt)

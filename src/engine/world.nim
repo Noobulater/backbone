@@ -7,31 +7,31 @@ import parser/bmp, parser/iqm
 import camera
 
 proc init*() =
-  var phong = initProgram("phong.vert", "phong.frag")
-
-  var block1 = newPhysObj()
-  block1.setPos(vec3(0.0,15.0,0.0))
-  block1.setAngle(vec3(0.0,0.0,0.0))
+  worldShader = initProgram("phong.vert", "phong.frag")
+  defMaterial = initMaterial("materials/models/terrain/grass.bmp")
+  #var block1 = newDray()
+  #block1.setPos(vec3(0.0,15.0,0.0))
+  #block1.setAngle(vec3(0.0,0.0,0.0))
   #block1.setAngleVel(vec3(34.0,0.0,0.0))
   #block1.setVel(vec3(2.0,-1.0,1.0))
-  block1.viewOffset = vec3(0.0,0.0,0.0)
-  block1.mass = 4.0
-  block1.program = phong
-  block1.setModel("models/cube.iqm")
-  block1.material = initMaterial("materials/models/cube/Material.bmp")
-#  block1.setModel("models/gun.iqm")
-#  block1.material = initMaterial("materials/models/gun/Text_1.bmp")
-  block1.lmin = vec3(-1)
-  block1.lmax = vec3(1)
+  #block1.viewOffset = vec3(0.0,0.0,0.0)
+  #block1.mass = 4.0
+  #block1.setModel("models/cube.iqm")
+  #block1.material = initMaterial("materials/models/cube/Material.bmp")
+  #block1.setModel("models/gun.iqm")
+  #block1.material = initMaterial("materials/models/gun/Text_1.bmp")
+  #block1.lmin = vec3(0)
+  #block1.lmax = vec3(0)
   #block1.gravity = 1.0
   #block1.drag = 1.0
+
+  #camera.viewEntity = block1
 
   var brick = newPhysObj()
   brick.setPos(vec3(0.0,0.0,0.0))
   brick.setAngle(vec3(0.0,0.0,0.0))
   #brick.setAngleVel(vec3(62.0,4.0,1.0))
   brick.setVel(vec3(0.0,0.0,0.0))
-  brick.program = phong
   brick.mass = 1.0
   brick.setModel("models/unitcube.iqm")
   brick.material = initMaterial("materials/models/terrain/grass.bmp")
@@ -48,7 +48,6 @@ proc init*() =
     wall.setPos(vec3(15.0 + -15.0 * ((i + 1) mod 2).float,4.0,15.0 * ((i - 1) mod 2).float))
     wall.setAngle(vec3(0.0,ang,0.0))
     wall.setVel(vec3(0.0,0.0,0.0))
-    wall.program = phong
     wall.mass = 1.0
     wall.setModel("models/unitcube.iqm")
     wall.material = initMaterial("materials/models/terrain/rock2.bmp")
@@ -62,7 +61,6 @@ proc init*() =
   wall.setPos(vec3(-15.0,4.0,0.0))
   wall.setAngle(vec3(0.0,ang,0.0))
   wall.setVel(vec3(0.0,0.0,0.0))
-  wall.program = phong
   wall.mass = 1.0
   wall.setModel("models/unitcube.iqm")
   wall.material = initMaterial("materials/models/terrain/rock2.bmp")

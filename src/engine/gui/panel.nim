@@ -5,17 +5,18 @@ import engine/types
 import surface
 import engine/coords/matrix, engine/coords/vector
 
+
+#GLOBAL STUFF (but local to this file)
+#FORWARD DECLARATIONS
 var sManager: seq[Screen] # screens that display panels
 var mainScreen*: Screen
 
-proc default(): proc(x,y,width,height: float) =
-  return proc(x,y,width,height: float) =
-    setColor(255, 255, 255, 255)
-    rect(x, y, width, height)
+proc def_Draw(x,y,width,height: float) =
+  setColor(255, 255, 255, 255)
+  rect(x, y, width, height)
 
-proc defaultClick(): proc(button: int, pressed: bool, x,y: float) =
-  return proc(button: int, pressed: bool, x,y: float) =
-    echo("Clicked")
+proc def_Click(button: int, released: bool, x,y: float) = echo("Clicked")
+proc def_MouseWheel(x,y,xVel,yVel: float) = echo("Wheeled")
 
 proc newPanel*(x,y,width,height: float): Panel =
   result = Panel()
@@ -27,8 +28,9 @@ proc newPanel*(x,y,width,height: float): Panel =
   result.textureID = 0
   result.crop = true
 
-  result.drawFunc = default()
-  result.doClick =  defaultClick()
+  result.paint = def_Draw
+  result.doClick = def_Click
+  result.doMouseWheel = def_MouseWheel
   result.children = @[]
   mainScreen.children.add(result)
 
@@ -42,8 +44,8 @@ proc newPanel*(x,y,width,height: float, parent: Panel): Panel =
   result.textureID = 0
   result.crop = true
 
-  result.drawFunc = default()
-  result.doClick =  defaultClick()
+  result.paint = def_Draw
+  result.doClick = def_Click
   result.children = @[]
   result.parent = parent
   parent.children.add(result)
@@ -91,25 +93,6 @@ proc newScreen*(pos, ang: Vec3): Screen =
 
 mainScreen = newScreen(0.0, 0.0, 0.0,  0.0, 0.0, 0.0)
 
-proc dive(cPanel: Panel) =
-  var cur: Panel
-  if (cPanel.crop) :
-    glScissor(GLint(cPanel.x), GLint(cPanel.y),  GLsizei(cPanel.width), GLsizei(cPanel.height))
-
-  for i in low(cPanel.children)..high(cPanel.children):
-    cur = cPanel.children[i]
-    if (cur.visible) :
-      surface.setCurPos(cPanel.x + cur.x, cPanel.y + cur.y)
-      cur.drawFunc(cur.x, cur.y, cur.width, cur.height)
-
-proc dive(cScreen: Screen) = #Dive because its going to do a depth first call order
-  var cur: Panel
-  for i in low(cScreen.children)..high(cScreen.children):
-    cur = cScreen.children[i]
-    surface.setCurPos(cur.x, cur.y)
-    cur.drawFunc(cur.x, cur.y, cur.width, cur.height)
-    cur.dive()
-
 proc getAbsoluteX*(cPanel: Panel): float =
   if (cPanel.parent == nil) :
     return 0.0
@@ -121,6 +104,46 @@ proc getAbsoluteY*(cPanel: Panel): float =
     return 0.0
   else :
     return cPanel.parent.y + getAbsoluteY(cPanel.parent)
+
+method remove*(cPanel: Panel) =
+#  for i in 0..high(sManager) :
+#    echo("fail")
+  #let screen = #sManager[i]
+  for j in 0..high(mainScreen.children) :
+    let child = mainScreen.children[j]
+    if (child == cPanel) :
+      #Beware, even though this panel might have children
+      #once the parent is removed there "Should" be no more references to them
+      #leaving them to the whim of the garbage collector
+      mainScreen.children.delete(mainScreen.children.get(child))
+
+proc dive(cPanel: Panel) =
+  var cur: Panel
+  if (cPanel.crop) :
+    let
+      x = getAbsoluteX(cPanel) + cPanel.x
+      y = getAbsoluteY(cPanel) + cPanel.y
+    glScissor(GLint(x), GLint(y),  GLsizei(cPanel.width*2), GLsizei(cPanel.height*2))
+
+  for i in low(cPanel.children)..high(cPanel.children):
+    cur = cPanel.children[i]
+    if (cur.visible) :
+      surface.setCurPos(cPanel.x + cur.x, cPanel.y + cur.y)
+      cur.paint(cur.x, cur.y, cur.width, cur.height)
+
+proc dive(cScreen: Screen) = #Dive because its going to do a depth first call order
+  var cur: Panel
+  for i in low(cScreen.children)..high(cScreen.children):
+    cur = cScreen.children[i]
+    surface.setCurPos(cur.x, cur.y)
+    if (cur.crop) :
+      let
+        x = getAbsoluteX(cur) + cur.x
+        y = getAbsoluteY(cur) + cur.y
+      glScissor(GLint(x), GLint(y),  GLsizei(cur.width*2), GLsizei(cur.height*2))
+    cur.paint(cur.x, cur.y, cur.width, cur.height)
+    cur.dive()
+
 
 var pixelArray: array[0..3,GLfloat]
 proc collide(cPanel: Panel, x,y: float): bool = #tests whether or not a panel has been clicked on
@@ -147,6 +170,9 @@ proc drawPrep() =
   glEnable(GL_SCISSOR_TEST)
   glDisable(GL_TEXTURE_2D)
   glDisable(GL_CULL_FACE)
+#  glEnable(GL_BLEND)
+#  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+  glDepthFunc(GL_LESS)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
   glMatrixMode(GL_MODELVIEW)
@@ -175,6 +201,8 @@ proc panelsDraw*() =
     #cScreen.dive()
   drawCleanup()
 
+proc update*(dt: float) = discard #for later use
+
 #Panel I/O
 proc checkCollision(cPanel: Panel, x,y: float): Panel =
   if (cPanel.children.len > 0) :
@@ -185,20 +213,25 @@ proc checkCollision(cPanel: Panel, x,y: float): Panel =
         return checkCollision(cur,x,y)
   return cPanel
 
-proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
-  var
-    cur: Panel
-    xCoords, yCoords: float
-    xMin,xMax: float
-    yMin,yMax: float
+proc panelsMouseInput*(button: int, released: bool, x,y:float) =
+  var cur: Panel
   drawPrep()
   glDisable(GL_SCISSOR_TEST)
   for i in low(mainScreen.children)..high(mainScreen.children):
     cur = mainScreen.children[i]
     if (cur.collide(x,y)) :
-      checkCollision(cur,x,y).doClick(button, pressed, x,y) # call the do click
+      checkCollision(cur,x,y).doClick(button, released, x,y) # call the do click
+  drawCleanup()
 
-
+proc panelsWheeled*(x,y,xVel,yVel:float) =
+  var cur: Panel
+  drawPrep()
+  glDisable(GL_SCISSOR_TEST)
+  for i in low(mainScreen.children)..high(mainScreen.children):
+    cur = mainScreen.children[i]
+    if (cur.collide(x,y)) :
+      checkCollision(cur,x,y).doMouseWheel(x,y,xVel,yVel) # call the do click
+  drawCleanup()
   #var cScreen: Screen
   #var pro = perspective(fov = 50.0, aspect = (scrW/scrH).float, near = 0.05, far = inf)
   #for i in low(sManager)..high(sManager):
@@ -219,8 +252,6 @@ proc panelsMouseInput*(button: int, pressed: bool, x,y:float) =
   #    if (cur.collide(x,y)) :
   #      cur.doClick( button, pressed, x,y ) # call the do click
   #      break
-
-  drawCleanup()
 
     #take screen coords, convert them to real word coordinates
     #no

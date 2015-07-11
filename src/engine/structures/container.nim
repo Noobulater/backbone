@@ -6,11 +6,18 @@ import engine/physical/physObj
 
 var containers* = newSeq[Container]()
 
-# Starts the tracking of this entity.
+# Starts the tracking of this
 method track*(this: Container): Container =
   containers.add(this)
   this
 
-# Stops the tracking of this entity.
+# Stops the tracking of this
 method untrack*(this: Container) =
   containers.delete(containers.get(this))
+
+# Initializes this
+method init*(this: Container): Container =
+  this.inventory = newInventory()
+  this
+
+proc newContainer*(): Container = Container().init.track()
