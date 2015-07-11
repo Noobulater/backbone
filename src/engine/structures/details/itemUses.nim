@@ -78,11 +78,12 @@ proc def_PrimaryFire*(weapon: WeaponData, data: Container) =
       trace.offset = trace.origin + trace.normal * trace.dist
       trace.ignore = @[PhysObj(drays[0])]
 
-      let tr = traceRay(trace)
-      if (tr.hit) :
-        tr.hitEnt.takeDamage(Damage(amount: weapon.damage, origin: tr.hitPos, normal: tr.normal))
-        Sound.play()
-        weapon.curPClip = weapon.curPClip - 1
+      Sound.play()
+      weapon.curPClip = weapon.curPClip - 1
+      for i in 0..weapon.numBullets :
+        let tr = traceRay(trace)
+        if (tr.hit) :
+          tr.hitEnt.takeDamage(Damage(amount: weapon.damage, origin: tr.hitPos, normal: tr.normal))
 
 proc def_Reload*(weapon: WeaponData, data: Container) =
   if (weapon.clipSize <= 0): return #it has unlimited ammo, you cant reload it
