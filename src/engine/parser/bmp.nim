@@ -56,7 +56,6 @@ proc parseBmp*(filePath: string): GLuint =
       finalSeq[i*4 + 2] = tempSeq[(max-i)*4 + 1]
       finalSeq[i*4 + 3] = tempSeq[(max-i)*4 + 0]
 
-
     # Now the pixel data is still really out of order, so this corrects that
     var finalfinalSeq = newSeq[uint8]((imageWidth*imageHeight)*4)
     let

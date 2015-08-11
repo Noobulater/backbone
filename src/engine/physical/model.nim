@@ -6,6 +6,7 @@ import engine/types
 import engine/glx, engine/camera
 import engine/coords/vector, engine/coords/matrix
 import engine/parser/iqm
+import engine/scene
 
 var models*: seq[Model] = @[]
 
@@ -22,11 +23,11 @@ method track*(this: Model): Model =
   models.add(this)
 
   proc tempDraw(): bool =
-    if (this.isValid) :
+    if (this.isValid and this.visible) :
       this.draw()
     return this.isValid
 
-  addDraw(tempDraw)
+  addDraw(this.renderGroup, tempDraw)
   this
 
 # Stops the tracking of this entity.
@@ -47,9 +48,15 @@ method init*(this: Model): Model =
   discard entity.init(this)
   this.program = worldShader
   this.material = defMaterial
+  this.renderGroup = RENDERGROUP_OPAQUE.int
+  this.visible = true
   this
 
 #method update*(this: Model, dt: float) =
   #procCall entity.update(this, dt)
 
 proc newModel*(): Model = Model().init.track()
+proc newModel*(rGroup: int): Model =
+  result = Model().init
+  result.renderGroup = rGroup
+  return result.track()

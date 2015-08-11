@@ -74,6 +74,7 @@ proc `+`*(a, b: Vec3): Vec3 = vec3(a[0] + b[0], a[1] + b[1], a[2] + b[2])
 proc `-`*(a, b: Vec3): Vec3 = vec3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 proc `*`*(a, b: Vec3): Vec3 = vec3(a[0] * b[0], a[1] * b[1], a[2] * b[2])
 proc `*`*(a: Vec3, s: float): Vec3 = vec3(a[0] * s, a[1] * s, a[2] * s)
+proc `*`*(s: float, a: Vec3): Vec3 = vec3(a[0] * s, a[1] * s, a[2] * s)
 proc `/`*(a, b: Vec3): Vec3 = vec3(a[0] / b[0], a[1] / b[1], a[2] / b[2])
 proc `$`*(v: Vec3): string = "(" & $v[0] & ", " & $v[1] & ", " & $v[2] & ")"
 proc `&`*(s: string, v: Vec3): string = s & $v
@@ -90,6 +91,8 @@ proc normal*(v: Vec3): Vec3 =
   let len = length(v)
   if (len == 0): vec3(0.0, 0.0, 0.0)
   else: vec3(v[0] / len, v[1] / len, v[2] / len)
+
+proc negligable*(v: Vec3): bool = return (abs(v[0]) <= 0.0001 and abs(v[1]) <= 0.0001 and abs(v[2]) <= 0.0001)
 
 proc dot*(a, b: Vec3): float = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 proc normDot(a, b: Vec3): float = dot(normal(a), normal(b))

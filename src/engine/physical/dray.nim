@@ -30,8 +30,8 @@ method remove*(this: Dray) =
 # Initializes this entity.
 method init*(this: Dray): Dray =
   discard physObj.init(this)
-  this.maxSpeed = 10.0
-  this.maxLift = 5.0
+  this.maxSpeed = 100.0
+  this.maxLift = 50.0
   this.drag = 0.5
   this.gravity = 0.0
   this
@@ -49,6 +49,7 @@ method input*(this: Dray, code: inputCode) =
     of RELOAD :
       owner.activeWeapon.reload(owner.activeWeapon, owner)
     else: discard
+
 method update*(this: Dray, dt: float) =
   var newVel = vec3(0)
   let

@@ -14,6 +14,12 @@ proc mat4*(m: varargs[cfloat]): Mat4 =
   for i in low(m)..high(m) :
     result.m[i] = GLfloat(m[i])
 
+
+proc mat4*(m: varargs[int]): Mat4 =
+  result = Mat4()
+  for i in low(m)..high(m) :
+    result.m[i] = GLfloat(m[i])
+
 proc mat4*(a,b,c: Vec3 ): Mat4 =
   result = Mat4()
   result.m[0] = a[0]
@@ -502,8 +508,8 @@ proc yspace*(view: Mat4): Vec3 = vec3(view[4], view[5], view[6])
 proc zspace*(view: Mat4): Vec3 = vec3(view[8], view[9], view[10])
 proc space*(view: Mat4, v: Vec3): Vec3 = vec3(dot(view.xspace, v), dot(view.yspace, v), dot(view.zspace, v))
 proc forward*(view: Mat4): Vec3 = normal(view.space(vec3(0, 0, -1)))
-proc right*(view: Mat4): Vec3 = cross(view.forward(), vec3(0, 1, 0))
-proc up*(view: Mat4): Vec3 = cross(view.forward(), view.right()) * -1
+proc right*(view: Mat4): Vec3 = normal(cross(view.forward(), vec3(0, 1, 0)))
+proc up*(view: Mat4): Vec3 = normal(cross(view.forward(), view.right()) * -1)
 
 proc lookat*(eye, target, up: Vec3): Mat4 =
   let

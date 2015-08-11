@@ -44,6 +44,7 @@ method init*(this: PhysObj): PhysObj =
   this.maxHealth = 100
   this.mass = 1.0
   this.gravity = 0
+  this.friction = 0.5
   this.drag = 0
   this.physType = pOBB
   #this.perish = perish
@@ -95,12 +96,13 @@ method collide*(this: PhysObj, cData: colData) =
       m2 = ent2.mass
       d = m1 + m2
     if (ent1 == this) :
-      this.vel = ((v1 * ((m1 - m2)/(d)).float + v2 * ((2.0 * m2)/(d)).float)) * -1.0
-      this.vel = this.vel - cData.pushAxis * this.vel
+      #this.vel = ((v1 * ((m1 - m2)/(d)).float + v2 * ((2.0 * m2)/(d)).float)) * -1.0
+      #this.vel = this.vel - cData.pushAxis * this.vel
+      this.vel = this.friction * (this.vel - (cData.pushAxis * this.vel.dot(cData.pushAxis)) * 2)
       this.angleVel = vec3(0)
-    else:
-      this.vel = (v1 * ((2.0 * m1)/(d)).float - v2 * ((m1 - m2)/(d)).float) * -1.0
-      this.angleVel = vec3(0)
+    #else:
+    #  this.vel = (v1 * ((2.0 * m1)/(d)).float - v2 * ((m1 - m2)/(d)).float) * -1.0
+    #  this.angleVel = vec3(0)
 
 method setGravity*(this: PhysObj, g: float) =
   this.gravity = g

@@ -19,7 +19,10 @@ var
   LocalPlayer*: Player
   worldShader*: Program
   defMaterial*: Material
-  
+  worldInit*: bool
+  skyShader*: Program
+  skyBoxMatrix*: Mat4
+
 proc Color*(r,g,b,a: float): Colr = Colr(r: (r*255.0).int, g: (g*255.0).int, b: (b*255.0).int, a: (a*255.0).int)
 proc Color*(r,g,b,a: int): Colr = Colr(r: r, g: g, b: b, a: a)
 

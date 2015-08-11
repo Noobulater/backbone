@@ -113,13 +113,10 @@ proc rect*(x,y,width,height: float) =
   glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
   glEnd()
@@ -137,13 +134,10 @@ proc orect*(x,y,width,height: float) =
   glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x + 1.0)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glVertex3f((curX + x + width + 1.0)/(scrW/2) - 1.0, (curY + y + 1.0)/(scrH/2) - 1.0, 0)
 
   glEnd()
@@ -164,15 +158,12 @@ proc trect*(x,y,width,height: float,textureID: GLuint) =
   glTexCoord2f(0,1)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glTexCoord2f(0,0)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glTexCoord2f(1,0)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glTexCoord2f(1,1)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
@@ -191,15 +182,12 @@ proc text*(x,y,width,height: float) =
   glTexCoord2f(0,1)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glTexCoord2f(0,0)
   glVertex3f((curX + x)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glTexCoord2f(1,0)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y + height)/(scrH/2) - 1.0, 0)
 
-  glColor4f(dRed, dGreen, dBlue, dAlpha)
   glTexCoord2f(1,1)
   glVertex3f((curX + x + width)/(scrW/2) - 1.0, (curY + y)/(scrH/2) - 1.0, 0)
 

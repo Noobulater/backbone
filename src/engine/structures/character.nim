@@ -23,7 +23,7 @@ method untrack*(this: Character) =
 # Initializes this
 method init*(this: Character): Character =
   discard container.init(this)
-  this.model = "models/cube.iqm"
+  this.model = "models/crates/crate.iqm"
   this
 
 proc spawn*(this: Character): Dray =
@@ -33,6 +33,9 @@ proc spawn*(this: Character): Dray =
   this.attached.setModel(this.model)
   this.attached.lmin = vec3(-1)
   this.attached.lmax = vec3(1)
+  this.attached.data = this
+  this.attached.viewOffset = vec3(0.0, 64.0, 0.0)
+  this.attached.pos = this.attached.pos
   return Dray(this.attached)
 
 proc newCharacter*(): Character = Character().init.track()

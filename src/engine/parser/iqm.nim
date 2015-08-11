@@ -9,7 +9,10 @@ import engine/coords/quat, engine/coords/matrix, engine/coords/vector
 let
   IQM_MAGIC = "INTERQUAKEMODEL" & '\0'
   IQM_VERSION = 2
-  rotate = identity().rotate(-90, vec3(1,0,0))
+  rot = mat4([1,0,0,0,
+  0,0,1,0,
+  0,1,0,0,
+  0,0,0,1])
 
 proc iqmLoadHeader(fs: FileStream): iqmHeader =
   result.magic = ""
@@ -257,7 +260,7 @@ proc loadJoints(fs: FileStream, data: var iqmData) =
       r = quat(data.joints[i].rotate)
       t = vec3(data.joints[i].translate)
       s = vec3(data.joints[i].scale)
-    data.baseframes[i] = mat4(r.normal(), t, s)
+    data.baseframes[i] = rot * mat4(r.normal(), t, s) * rot
     data.inverseframes[i] = data.baseframes[i].inverse()
 
     if (data.joints[i].parent >= 0) :
@@ -321,7 +324,7 @@ proc reCalcAnims(fs: FileStream, data: var iqmData) =
       if (p.channelmask.int and 0x200).bool :
         scale[2] = scale[2] + fs.readInt16().uint16.float * p.channelscale[9]
 
-      let m = mat4(rotate.normal(), translate, scale)
+      let m = rot * mat4(rotate.normal(), translate, scale) * rot
       let index = i*data.h.num_poses.int + j
       if(p.parent >= 0) :
         data.frames[index] = data.baseframes[p.parent] * m * data.inverseframes[j]
@@ -391,7 +394,28 @@ proc parseIQM*(filePath: string): iqmData =
       echo("ERROR: <" & filePath & "> NO BASE ANIM")
       return iqmData()
 
+
+
+    #CORRECTS THE DATA SO THAT IT MESHES WITH OPENGL
+    #if (filePath == "models/mrfixit.iqm") :
+    var tempY: float
+    for i in 0..(header.num_vertexes.int-1) :
+      tempY = data.verticies[i*3 + 1]
+      data.verticies[i*3 + 1] = data.verticies[i*3 + 2]
+      data.verticies[i*3 + 2] = tempY
+
+      tempY = data.normals[i*3 + 1]
+      data.normals[i*3 + 1] = data.normals[i*3 + 2]
+      data.normals[i*3 + 2] = tempY
+
+      tempY = data.tangents[i*4 + 1]
+      data.tangents[i*4 + 1] = data.tangents[i*4 + 2]
+      data.tangents[i*4 + 2] = tempY
+
+      reCalcAnims(fs, data)
+
     close(fs)
+
 
     lastPath = filePath
     lastParsed = data
@@ -400,5 +424,9 @@ proc parseIQM*(filePath: string): iqmData =
 
   echo("ERROR: " & filePath & " file not found")
   return iqmData()
+
+proc convertIQM(filePath: string) =
+  var data = parseIQM(filePath)
+
 
 #discard parseIQM("content/mrfixit.iqm")

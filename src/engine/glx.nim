@@ -29,22 +29,6 @@ proc attribI*(pos: uint32, size,stride: GLint, data: ptr) =
   glEnableVertexAttribArray(pos)
   glVertexAttribIPointer(pos, size, cGL_INT, 0'i32, data)
 
-#DRAW CALLS
-var draws*: seq[proc(): bool] = @[]
-proc addDraw*(draw: proc(): bool) =
-  draws.add(draw)
-
-proc drawScene*() =
-  var removeIDs = newSeq[int]()
-  glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-  for i in low(draws)..high(draws):
-    if (not draws[i]()) : # if it returns true, mark it for removal
-      removeIDs.add(i)
-  # We can't remove it while we are iterating through, so remove it after
-  # To ensure safety of data
-  for i in low(removeIDs)..high(removeIDs) :
-    draws.delete(removeIDs[removeIDs.len-1 - i])
-
 method use*(this: Program) = glUseProgram(this.handle)
 
 method uniform*(this: Program, name: string): int32 =
@@ -87,9 +71,9 @@ method destroy*(this: Resource) = discard
 method use*(this: Material, program: Program) =
   glActiveTexture(GL_TEXTURE0)
   glBindTexture(GL_TEXTURE_2D, this.texture)
-  glActiveTexture(GL_TEXTURE1)
-  glBindTexture(GL_TEXTURE_2D, this.normal)
-  glActiveTexture(GL_TEXTURE0)
+  #glActiveTexture(GL_TEXTURE1)
+  #glBindTexture(GL_TEXTURE_2D, this.normal)
+  #glActiveTexture(GL_TEXTURE0)
   glUniform3f(program.uniform("mat_ambient"), this.ambient.d[0], this.ambient.d[1], this.ambient.d[2])
   glUniform3f(program.uniform("mat_diffuse"), this.diffuse.d[0], this.diffuse.d[1], this.diffuse.d[2])
   glUniform3f(program.uniform("mat_specular"), this.specular.d[0], this.specular.d[1], this.specular.d[2])
@@ -111,44 +95,6 @@ proc initMaterial*(file: string, normalFile: string): Material =
   result.shine = 40.0'f32
 
 proc initMaterial*(file: string): Material = initMaterial(file, file)
-
-var i: seq[uint32] = @[0'u32,1,2,
-  0,3,1,
-  4,5,6,
-  4,7,5,
-  8,9,10,
-  8,11,9,
-  12,13,14,
-  12,14,15,
-  16,17,18,
-  16,18,19,
-  20,21,22,
-  20,22,23]
-var v: seq[float32] = @[
-  0.0'f32,0.0,0.0,
-  1.0,1.0,0.0,
-  1.0,0.0,0.0,
-  0.0,1.0,0.0,
-  0.0,0.0,0.0,
-  0.0,1.0,1.0,
-  0.0,1.0,0.0,
-  0.0,0.0,1.0,
-  0.0,1.0,0.0,
-  1.0,1.0,1.0,
-  1.0,1.0,0.0,
-  0.0,1.0,1.0,
-  1.0,0.0,0.0,
-  1.0,1.0,0.0,
-  1.0,1.0,1.0,
-  1.0,0.0,1.0,
-  0.0,0.0,0.0,
-  1.0,0.0,0.0,
-  1.0,0.0,1.0,
-  0.0,0.0,1.0,
-  0.0,0.0,1.0,
-  1.0,0.0,1.0,
-  1.0,1.0,1.0,
-  0.0,1.0,1.0]
 
 method calcAnim*(this: Mesh) =
   var
@@ -343,4 +289,145 @@ proc initMesh*(filePath: string, program: uint32): Mesh =
     result.handle = vao
     result.data = data
     calcAnim(result)
+  return result
+
+let
+  i = @[0'i32,1,2,
+    0,3,1,
+    4,5,6,
+    4,7,5,
+    8,9,10,
+    8,11,9,
+    12,13,14,
+    12,15,13,
+    16,17,18,
+    16,19,17,
+    20,21,22,
+    20,23,21,]
+  v = @[1.0'f32,-1.0,1.0,
+    -1.0,-1.0,-1.0,
+    1.0,-1.0,-1.0,
+    -1.0,-1.0,1.0,
+    1.0,1.0,1.0,
+    -1.0,1.0,-1.0,
+    -1.0,1.0,1.0,
+    1.0,1.0,-1.0,
+    1.0,-1.0,1.0,
+    1.0,1.0,-1.0,
+    1.0,1.0,1.0,
+    1.0,-1.0,-1.0,
+    1.0,-1.0,-1.0,
+    -1.0,1.0,-1.0,
+    1.0,1.0,-1.0,
+    -1.0,-1.0,-1.0,
+    -1.0,-1.0,-1.0,
+    -1.0,1.0,1.0,
+    -1.0,1.0,-1.0,
+    -1.0,-1.0,1.0,
+    1.0,1.0,1.0,
+    -1.0,-1.0,1.0,
+    1.0,-1.0,1.0,
+    -1.0,1.0,1.0]
+  n = @[0.0'f32,-1.0,0.0,
+    0.0,-1.0,0.0,
+    0.0,-1.0,0.0,
+    0.0,-1.0,0.0,
+    0.0,1.0,0.0,
+    0.0,1.0,0.0,
+    0.0,1.0,0.0,
+    0.0,1.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    0.0,0.0,-1.0,
+    0.0,0.0,-1.0,
+    0.0,0.0,-1.0,
+    0.0,0.0,-1.0,
+    -1.0,0.0,0.0,
+    -1.0,0.0,0.0,
+    -1.0,0.0,0.0,
+    -1.0,0.0,0.0,
+    0.0,0.0,1.0,
+    0.0,0.0,1.0,
+    0.0,0.0,1.0,
+    0.0,0.0,1.0,]
+  t = @[1.0'f32,0.0,
+    0.0,1.0,
+    1.0,1.0,
+    0.0,0.0,
+    1.0,0.0,
+    0.0,1.0,
+    0.0,0.0,
+    1.0,1.0,
+    1.0,1.0,
+    0.0,0.0,
+    1.0,0.0,
+    0.0,1.0,
+    1.0,1.0,
+    0.0,0.0,
+    1.0,0.0,
+    0.0,1.0,
+    0.0,1.0,
+    1.0,0.0,
+    0.0,0.0,
+    1.0,1.0,
+    1.0,0.0,
+    0.0,1.0,
+    1.0,1.0,
+    0.0,0.0,]
+proc initCubeMesh*(program: uint32, textureScale: float): Mesh =
+  result = Mesh()
+
+  var
+    data = iqmData()
+
+  data.indicies = i
+  data.verticies = v
+  data.normals = n
+  data.texCoords = t
+  for i in 0..high(data.texCoords) :
+    data.texCoords[i] = data.texCoords[i] * (1.0/textureScale)
+
+  data.h.num_triangles = 24
+  data.h.num_vertexes = 36
+
+  var
+    triangles = (data.h.num_triangles.int*3).int32
+    vertexes = data.h.num_vertexes.int32
+    normalCount = data.h.num_vertexes.int32
+    textureCount = 0
+    indicies = data.indicies
+    verticies = data.verticies
+    normals = data.normals
+    texCoords = data.texCoords
+    vao = GLuint(0) # if not static this will remain 0
+
+  result.playRate = 0.0
+
+  #if (data.h.num_anims.int < 1) :
+  # STATIC OBJECTS ONLY
+  vao = bufferArray()
+  if (triangles > 0) :
+    discard buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32).int32 * indicies.len.int32, indicies[0].addr)
+
+  if (vertexes > 0) :
+    discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, verticies[0].addr)
+    let pos = glGetAttribLocation(program, "in_position").uint32
+    attrib(pos, 3'i32, cGL_FLOAT)
+
+  if (normalCount > 0) :
+    discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, normals[0].addr)
+    #let pos = glGetAttribLocation(program, "in_normal").uint32
+    attrib(1, 3'i32, cGL_FLOAT)
+
+  if (true) : # assuming everything is textured
+    discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*2).int32, texCoords[0].addr)
+    #let pos = glGetAttribLocation(program, "in_uv").uint32
+    attrib(2, 2'i32, cGL_FLOAT)
+
+  data.meshes = @[iqmMesh()]
+
+  result.handle = vao
+  result.data = data
   return result

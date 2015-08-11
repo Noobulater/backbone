@@ -11,8 +11,8 @@ import timer
 var skydome: Model
 proc init*() =
   skydome = newModel()
-  skydome.setModel("models/cube.iqm")
-  skydome.material = initMaterial("materials/models/cube/Material.bmp")
+  skydome.setModel("models/crates/crate.iqm")
+  skydome.material = initMaterial("materials/models/crates/crate/crate.bmp")
   skydome.setScale(vec3(0.1))
   #initializes teh physics engine
 
@@ -74,7 +74,7 @@ proc intersectingAABB*(this, that: PhysObj): bool =
 #ORIENTED BOUNDING BOX
 proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis: Vec3, cData: var colData): bool =
   #Handles the cross product = {0,0,0} case
-  if(axis == 0.0) :
+  if (axis.negligable()) :
     return true
 
   var
@@ -177,7 +177,7 @@ proc intOBBOBB(this, that: PhysObj): colData =
 
 proc traceCheckAxis*(origin, offset: Vec3, aCorners: array[0..7, Vec3], axis: Vec3, cData: var colData): bool =
   #Handles the cross product = {0,0,0} case
-  if(axis == 0.0) :
+  if(axis.negligable()) :
     return true
 
   var
@@ -305,6 +305,7 @@ proc traceRay*(trace: TraceData): TraceResult =
             result.normal = trace.normal
             result.hitEnt = curEnt
             result.hitPos = res.hitPos
+            result.hitNormal = res.pushAxis # uses the closest axis for the normal
             result.hit = true
 
 proc traceRay*(origin, normal: Vec3, dist: float): TraceResult =
@@ -315,7 +316,7 @@ proc click*() =
   var trace = TraceData()
   trace.origin = camera.pos
   trace.normal = camera.view.forward()
-  trace.dist = 100
+  trace.dist = 1000
   trace.offset = trace.origin + trace.normal * trace.dist
   trace.ignore = @[PhysObj(drays[0])]
   let tr = traceRay(trace)
@@ -340,25 +341,25 @@ proc update*(dt: float) = #dt was the last time it was called
   var curEnt: PhysObj
   for i in low(physObjs)..high(physObjs) :
     curEnt = physObjs[i]
-    # Now check collision
+    if (curEnt.isValid) :
+      # Now check collision
+      if (curEnt.lmin != 0.0 or curEnt.lmax != 0.0) : # no collisons, dont bother
+        if (curEnt.vel != 0.0 or curEnt.angleVel != 0.0) :
+          for j in low(physObjs)..high(physObjs) :
+            if (i != j) :
+              if (physObjs[j].lmin != 0.0 or physObjs[j].lmax != 0.0) :
+                let cData = intersecting(curEnt, physObjs[j])
+                if (cData.intersecting) :
+                  curEnt.collide(cData)
+                  physObjs[j].collide(cData)
+                  #if (curEnt.gravity > 0) :
+                    #echo(cData.pushDistance)
 
-    if (curEnt.lmin != 0.0 or curEnt.lmax != 0.0) : # no collisons, dont bother
-      if (curEnt.vel != 0.0 or curEnt.angleVel != 0.0) :
-        for j in low(physObjs)..high(physObjs) :
-          if (i != j) :
-            if (physObjs[j].lmin != 0.0 or physObjs[j].lmax != 0.0) :
-              let cData = intersecting(curEnt, physObjs[j])
-              if (cData.intersecting) :
-                curEnt.collide(cData)
-                physObjs[j].collide(cData)
-                #if (curEnt.gravity > 0) :
-                  #echo(cData.pushDistance)
-
-                #echo(cData.hitPos)
-                #if (once) :
-                  #once = false
-                  #camera.pos = cData.hitPos + cData.pushAxis * cData.pushDistance
-                #curEnt.angleVel = curEnt.angleVel * -1
-    curEnt.update(dt) # move the object
+                  #echo(cData.hitPos)
+                  #if (once) :
+                    #once = false
+                    #camera.pos = cData.hitPos + cData.pushAxis * cData.pushDistance
+                  #curEnt.angleVel = curEnt.angleVel * -1
+      curEnt.update(dt) # move the object
     #if (physObjs[1].intersect(physObjs[0])) :
     #  physObjs[1].vel = vec3(0.0,1.0,0.0)

@@ -40,7 +40,8 @@ method play*(sound: SND) =
   sound.playing = true
   sound.channel = mixer.playChannel(-1, sound.data, 0) #wav
   if (sound.channel == -1) :
-      quit("Unable to play sound")
+    echo(getError())
+    quit("Unable to play sound")
 
 method unpause*(sound: SND) =
   if (sound.channel > -1 and not sound.isPlaying()) :

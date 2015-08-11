@@ -12,17 +12,19 @@ proc init*() =
   proc draw(x,y,width,height: float) =
     if (not shouldDraw()) : return
 
-    setColor(55,55,55,55)
+    setColor(55,55,55,255)
     rect(0,0,width,height)
 
     setColor(0,0,0,155)
     orect(0,0,width,height)
 
     let percent = LocalPlayer.attached.health/LocalPlayer.attached.maxHealth
-    setColor(255*(1-percent),255*percent,0,55)
+    let g = (255*percent).int
+    let r = (255*(1-percent)).int
+    setColor(r,g,0,155)
     rect(0,0,width*percent,height)
 
-  #  setColor(0,0,0,155)
-  #  orect(0,0,width*percent,height)
+    setColor(0,0,0,155)
+    orect(0,0,width*percent,height)
 
   healthBar.paint = draw

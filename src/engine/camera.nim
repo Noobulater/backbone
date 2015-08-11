@@ -27,6 +27,12 @@ proc update*() =
     camera.pos = pPos
   view = identity().rotate(pPitch, vec3(1, 0, 0)) * identity().rotate(pYaw, vec3(0, 1, 0)) * identity().translate(pPos * -1)
 
+  if (LocalPlayer.viewModel.visible) :
+    LocalPlayer.viewModel.pos = pPos + view.forward() * 3.0 + view.right() * 1.0 + view.up() * -1.0
+    LocalPlayer.viewModel.angle = vec3(pPitch * -1, pYaw * -1, pRoll * -1)
+    LocalPlayer.viewModel.calcMatrix()
+
+
 proc setViewAngle*(p,y,r:float) =
   camera.ang[0] = p
   camera.ang[1] = y

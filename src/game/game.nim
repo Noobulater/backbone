@@ -22,11 +22,13 @@ proc init*() =
   item3.description = "that thing"
   item3.clipSize = 3
   item3.curPClip = 3
+  item3.model = "models/guns/thompson.iqm"
   discard LocalPlayer.inventory.addItem(item1)
   discard LocalPlayer.inventory.addItem(item2)
+  discard LocalPlayer.inventory.addItem(item3)
   #discard LocalPlayer.inventory.addItem(item3)
   #discard LocalPlayer.inventory.addItem(item3)
-  LocalPlayer.inventory.equipment[0] = item3
+  discard item3.use(ItemData(item3), LocalPlayer)
   hud.init()
 
 proc update*(dt: float) =

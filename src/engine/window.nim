@@ -11,7 +11,7 @@ import gui/panel
 import coords/matrix, coords/vector
 import parser/bmp
 import physical/dray
-import world
+import world, scene
 import structures/details/itemUses
 import structures/player
 import structures/character
@@ -52,10 +52,12 @@ proc init*() =
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glEnable(GL_DEPTH_TEST)
   glEnable(GL_CULL_FACE)
-  glFrontFace(GL_CW)
+  glFrontFace(GL_CCW)
+
   txtId = parseBmp("bmps/notbadd.bmp")
   dt = 0.0
 
+  scene.init() # make sure this comes first
   player.initLocalPlayer()
   camera.init()
   world.init()
@@ -67,7 +69,8 @@ proc init*() =
 
 proc update(dt: float) =
   timer.update(dt)
-  simulation.update(dt)
+  if (worldInit) :
+    simulation.update(dt)
   audio.update(dt)
   panel.update(dt)
   game.update(dt)
@@ -94,6 +97,10 @@ proc mouseInput(evt: MouseButtonEventPtr) =
     simulation.click()
     # We put true because it is released
     panelsMouseInput(b, true, evt.x.float, evt.y.float)
+  else:
+    var ent = Dray(LocalPlayer.viewEntity)
+    if (ent != nil):
+      ent.input(PRIMARYFIRE)
 
 proc mouseWheeled(evt: MouseWheelEventPtr) =
   var x,y: cint
@@ -135,6 +142,9 @@ proc keyInput(evt: KeyboardEventPtr) =
   of K_LCTRL:
     if (ent == nil):
       camera.pos = camera.pos + vec3(0.0,-movespeed,0.0)
+  of K_R:
+    if (ent != nil):
+      ent.input(RELOAD)
   else:
     discard
   #of K_UP: simulator.controlInput("up", action)

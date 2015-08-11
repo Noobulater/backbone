@@ -54,6 +54,9 @@ method setScale*(this: Entity, s: Vec3) =
 method update*(this: Entity, dt: float) =
   this.pos = this.pos + this.vel * dt
   this.angle = this.angle + this.angleVel * dt
+  if (this.parent != nil) :
+    this.pos = this.pos + this.parent.vel * dt
+    this.angle = this.angle + this.parent.angleVel * dt
   this.calcMatrix()
 
 # Initializes this entity.

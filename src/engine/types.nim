@@ -55,7 +55,7 @@ type
   Player* = ref object of Character
     id*: uint8 # ID of the player
     viewEntity*: Entity
-
+    viewModel*: Model #This is a model that the player will see for their weapon
   ######################
   ######INVENTORY#######
   ######################
@@ -88,6 +88,8 @@ type
     primaryFire*: proc(weapon: WeaponData, data: Container)  # only drays(Vehicles) can fire weapons
     secondaryFire*: proc(weapon: WeaponData, data: Container)
     reload*: proc(weapon: WeaponData, data: Container)  # only drays(Vehicles) can fire weapons
+    deploy*: proc(weapon: WeaponData, data: Container)
+    holster*: proc(weapon: WeaponData, data: Container)
 
   Inventory* = ref object of RootObj # This contains info regarding weapons/items
     equipment*: array[0..high(EQSLOTS).int, EquipmentData]
@@ -242,6 +244,8 @@ type
   ######################
   #########GLX##########
   ######################
+  RenderGroups* = enum
+    RENDERGROUP_SKYBOX, RENDERGROUP_OPAQUE, RENDERGROUP_TRANSPARENT, RENDERGROUP_VIEWMODEL, RENDERGROUP_VIEWMODEL_TRANSPARENT
   Unchecked* {.unchecked.}[T] = array[1, T]
 
   Resource* = ref object of RootObj
@@ -295,6 +299,17 @@ type
     # 3 SPHERE
     # 4 CYLINDER
     # 5 POLYGON
+  Particle* = ref object of RootObj # Particles aren't close enough to entities to inherit them
+    pos*, scale*: Vec3
+    rotation*: float
+    vel*: Vec3
+    rotVel*: float
+    matrix*: Mat4
+    #Display
+    color*: Colr
+    texture*: string
+    textID*: int
+    lifeTime*: float #how long it will remain visible
 
   Entity* = ref object of RootObj
     pos*: Vec3
@@ -315,6 +330,8 @@ type
     material*: Material
     mesh*: Mesh
     meshPath*: string
+    renderGroup*: int
+    visible*: bool
 
   colData* = object
     hitPos*: Vec3
@@ -339,6 +356,7 @@ type
     impulse*: Vec3 # Impulse is absolute velocity. This will happen, not affected by drag
     mass*: float
     gravity*: float
+    friction*: float # Determines how much to decay collisions by
     drag*: float # how quickly an objects velocity decays
     obbc*,lmin*,lmax*: Vec3 # axis aligned bounding box : obbCenter, local min, local max
     physType*: pType

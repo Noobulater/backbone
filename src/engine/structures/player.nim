@@ -2,6 +2,7 @@
 import globals
 import engine/types
 import character
+import engine/physical/model
 
 var players* = newSeq[Player]()
 
@@ -25,6 +26,8 @@ proc newPlayer*(): Player = Player().init.track()
 
 proc initLocalPlayer*() =
   LocalPlayer = newPlayer()
+  LocalPlayer.viewModel = newModel(RENDERGROUP_VIEWMODEL.int)
+  LocalPlayer.viewModel.visible = false
 
 method spawn*(this: Player): Dray =
   LocalPlayer.viewEntity = Entity(character.spawn(this))

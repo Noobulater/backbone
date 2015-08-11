@@ -170,6 +170,7 @@ proc drawPrep() =
   glEnable(GL_SCISSOR_TEST)
   glDisable(GL_TEXTURE_2D)
   glDisable(GL_CULL_FACE)
+  glClear(GL_DEPTH_BUFFER_BIT) # clear the depth buffer so that panels don't interact witht he world
 #  glEnable(GL_BLEND)
 #  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glDepthFunc(GL_LESS)
