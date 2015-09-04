@@ -42,7 +42,7 @@ proc init*() =
   var oildrum1 = newModel()
   oildrum1.setPos(vec3(33.0,-2.0,55.0))
   oildrum1.setAngle(vec3(0.0,0.0,0.0))
-  oildrum1.setModel("models/player.iqm")
+  oildrum1.setModel("models/industrial/oildrum_01.iqm")
   oildrum1.material = defMaterial
 
   var brick = newPhysObj()

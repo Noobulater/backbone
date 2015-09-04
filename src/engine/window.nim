@@ -104,7 +104,7 @@ proc mouseInput(evt: MouseButtonEventPtr) =
 
 proc mouseWheeled(evt: MouseWheelEventPtr) =
   var x,y: cint
-  GetMouseState(x, y)
+  GetMouseState(x.addr, y.addr)
   panelsWheeled(x.float, y.float, evt.x.float, evt.y.float)
 
 #we might not even need type, but i wrote it out anyways. pressing delete is alot easier
