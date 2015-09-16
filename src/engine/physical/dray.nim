@@ -31,9 +31,9 @@ method remove*(this: Dray) =
 method init*(this: Dray): Dray =
   discard physObj.init(this)
   this.maxSpeed = 100.0
-  this.maxLift = 50.0
+  this.maxLift = 100.0
   this.drag = 0.5
-  this.gravity = 0.0
+  this.gravity = 300.0
   this
 
 proc newDray*(): Dray = Dray().init.track()
@@ -44,7 +44,8 @@ method input*(this: Dray, code: inputCode) =
   if (owner == LocalPlayer and owner.activeWeapon != nil) :
     case code :
     of PRIMARYFIRE :
-      owner.activeWeapon.primaryFire(owner.activeWeapon, owner)
+      discard
+      #owner.activeWeapon.primaryFire(owner.activeWeapon, owner)
     of SECONDARYFIRE : discard
     of RELOAD :
       owner.activeWeapon.reload(owner.activeWeapon, owner)
@@ -54,12 +55,13 @@ method update*(this: Dray, dt: float) =
   var newVel = vec3(0)
   let
     forward = camera.view.forward()
+    xzForward = normal(vec3(forward.x, 0, forward.z))
     right = camera.view.right()
   if (isKeyDown(K_w)) :
-    let c = forward * this.maxSpeed
+    let c = xzForward * this.maxSpeed
     newVel = newVel + vec3(c.x,0.0,c.z)
   elif (isKeyDown(K_s)) :
-    let c = forward * -this.maxSpeed
+    let c = xzForward * -this.maxSpeed
     newVel = newVel + vec3(c.x,0.0,c.z)
   if (isKeyDown(K_d)) :
     let c = right * this.maxSpeed
@@ -73,5 +75,7 @@ method update*(this: Dray, dt: float) =
   #elif (isKeyDown(K_LCTRL)) :
   #  this.vel[1] = this.vel[1] - this.maxLift
   this.shootForward = forward
-  this.impulse = newVel
+  this.vel[0] = newVel[0]
+  this.vel[2] = newVel[2]
+  this.impulse[1] = newVel[1]
   procCall physObj.update(this, dt)

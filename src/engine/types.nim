@@ -245,7 +245,7 @@ type
   #########GLX##########
   ######################
   RenderGroups* = enum
-    RENDERGROUP_SKYBOX, RENDERGROUP_OPAQUE, RENDERGROUP_TRANSPARENT, RENDERGROUP_VIEWMODEL, RENDERGROUP_VIEWMODEL_TRANSPARENT
+    RENDERGROUP_SKYBOX, RENDERGROUP_OPAQUE, RENDERGROUP_BOTH, RENDERGROUP_TRANSPARENT, RENDERGROUP_VIEWMODEL, RENDERGROUP_VIEWMODEL_TRANSPARENT
   Unchecked* {.unchecked.}[T] = array[1, T]
 
   Resource* = ref object of RootObj
@@ -336,7 +336,7 @@ type
   colData* = object
     hitPos*: Vec3
     ent1*,ent2*: PhysObj
-    intersecting*: bool
+    willIntersect*: bool
     pushDistance*: float
     pushAxis*: Vec3 # unsticking the collision
 

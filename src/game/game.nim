@@ -3,11 +3,15 @@ import globals
 import engine/types
 import engine/structures/details/inventory
 import engine/structures/player
+import engine/timer
 import gui/inv, gui/hud
 import engine/structures/details/itemUses
 
-proc init*() =
+proc spawn() =
   discard LocalPlayer.spawn()
+
+proc init*() =
+  #simple(2, spawn)
   #Lets setup inventory
   var item1 = newItem()
   item1.name = "Item 1"

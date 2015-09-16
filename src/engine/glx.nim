@@ -1,4 +1,5 @@
-#Written by Matt Nichols
+#Started by Matt Nichols
+#Expanded by Aaron Bentley
 import os, times, math, tables, strutils
 import opengl, glu
 import globals
@@ -167,18 +168,21 @@ method calcAnim*(this: Mesh) =
 
 method use*(this: Mesh) =
   glBindVertexArray(this.handle)
+  var
+    indicies = this.data.indicies
+    meshes = this.data.meshes
+
   if (this.handle.int > 0) :
-    if (this.data.meshes[0].actualTex.int > 0) :
-      glActiveTexture(GL_TEXTURE0)
-      glBindTexture(GL_TEXTURE_2D, GLuint(this.data.meshes[0].actualTex.int))
-    glDrawElements(GL_TRIANGLES, this.data.h.num_vertexes.int32*3, GL_UNSIGNED_INT, nil)
+    for i in 0..high(this.data.meshes) :
+      if (meshes[i].actualTex.int > 0) :
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, GLuint(meshes[i].actualTex.int))
+      glDrawElements(GL_TRIANGLES, meshes[i].num_triangles.int32*3, GL_UNSIGNED_INT, indicies[meshes[i].first_triangle.int*3].addr)
   else :
     # Need to unbind the buffer to use Vertex pointers
     # other wise intpreted as offsets into a VBO
     glBindBuffer(GL_ARRAY_BUFFER, 0)
-    var
-      indicies = this.data.indicies
-      meshes = this.data.meshes
+
     #########################
     ########ANIMATION########
     #########################
@@ -258,8 +262,6 @@ proc initMesh*(filePath: string, program: uint32): Mesh =
   if (data.h.num_anims.int < 1) :
     # STATIC OBJECTS ONLY
     vao = bufferArray()
-    if (triangles > 0) :
-      discard buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32).int32 * indicies.len.int32, indicies[0].addr)
 
     if (vertexes > 0) :
       discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, verticies[0].addr)
@@ -392,6 +394,12 @@ proc initCubeMesh*(program: uint32, textureScale: float): Mesh =
   data.h.num_triangles = 24
   data.h.num_vertexes = 36
 
+  data.meshes = newSeq[iqmMesh](1)
+  data.meshes[0].num_triangles = 24
+  data.meshes[0].num_vertexes = 8
+  data.meshes[0].first_triangle = 0
+  data.meshes[0].first_vertex = 0
+
   var
     triangles = (data.h.num_triangles.int*3).int32
     vertexes = data.h.num_vertexes.int32
@@ -408,8 +416,6 @@ proc initCubeMesh*(program: uint32, textureScale: float): Mesh =
   #if (data.h.num_anims.int < 1) :
   # STATIC OBJECTS ONLY
   vao = bufferArray()
-  if (triangles > 0) :
-    discard buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32).int32 * indicies.len.int32, indicies[0].addr)
 
   if (vertexes > 0) :
     discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, verticies[0].addr)
@@ -425,8 +431,6 @@ proc initCubeMesh*(program: uint32, textureScale: float): Mesh =
     discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*2).int32, texCoords[0].addr)
     #let pos = glGetAttribLocation(program, "in_uv").uint32
     attrib(2, 2'i32, cGL_FLOAT)
-
-  data.meshes = @[iqmMesh()]
 
   result.handle = vao
   result.data = data

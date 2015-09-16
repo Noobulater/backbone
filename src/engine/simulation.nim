@@ -10,10 +10,11 @@ import timer
 
 var skydome: Model
 proc init*() =
-  skydome = newModel()
-  skydome.setModel("models/crates/crate.iqm")
-  skydome.material = initMaterial("materials/models/crates/crate/crate.bmp")
-  skydome.setScale(vec3(0.1))
+  discard
+  #skydome = newModel()
+  #skydome.setModel("models/crates/crate.iqm")
+  #skydome.material = initMaterial("materials/models/crates/crate/crate.bmp")
+  #skydome.setScale(vec3(0.1))
   #initializes teh physics engine
 
 #######################
@@ -117,13 +118,13 @@ proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis: Vec3, cData: var co
 
 var once = true
 proc intOBBOBB(this, that: PhysObj): colData =
-  var c = colData(hitPos: this.pos, ent1: this, ent2: this, intersecting: false, pushDistance : 100000)
+  var c = colData(hitPos: this.pos, ent1: this, ent2: this, willIntersect: false, pushDistance : 100000)
   let
     aCorners = getBoxExtents(this)
     bCorners = getBoxExtents(that)
-    aX = this.getForward()#b's local X axis
-    aY = this.getUp()#b's local Y Axis
-    aZ = this.getRight()#b's local Z Axis
+    aX = this.getForward()#a's local X axis
+    aY = this.getUp()#a's local Y Axis
+    aZ = this.getRight()#a's local Z Axis
     bX = that.getForward()#b's local X axis
     bY = that.getUp()#b's local Y Axis
     bZ = that.getRight()#b's local Z Axis
@@ -170,9 +171,9 @@ proc intOBBOBB(this, that: PhysObj): colData =
 
                                   #We have our minimum seperating axis, lets calculate the hit position
                                   c.hitPos = c.hitPos #+ (aX * c.pushDistance + aY * c.pushDistance + aZ * c.pushDistance) * (1/3)
-                                  c.intersecting = true
+                                  c.willIntersect = true
                                   return c
-  c.intersecting = false
+  c.willIntersect = false
   return c
 
 proc traceCheckAxis*(origin, offset: Vec3, aCorners: array[0..7, Vec3], axis: Vec3, cData: var colData): bool =
@@ -211,7 +212,7 @@ proc traceCheckAxis*(origin, offset: Vec3, aCorners: array[0..7, Vec3], axis: Ve
   return (longSpan <= sumSpan)
 
 proc intRayOBB*(t: TraceData, that: PhysObj): colData =
-  result = colData(hitPos: t.offset, ent1: that, ent2: that, intersecting: false, pushDistance : 100000)
+  result = colData(hitPos: t.offset, ent1: that, ent2: that, willIntersect: false, pushDistance : 100000)
   # THIS IS TEMPORARY, ITS A BIT EXPENSIVE BECAUSE IT PERFORMS THE OBB CALCULATIONS
   # INSTEAD OF USING THE AABB TACTICS
   var
@@ -257,7 +258,7 @@ proc intRayOBB*(t: TraceData, that: PhysObj): colData =
                 for i in 0..2 :
                   if (abs(normal[i]) < 0.0001) :
                     if (origin[i] < min[i] and max[i] > origin[i] ) :
-                      result.intersecting = false
+                      result.willIntersect = false
                       return result
                   else :
                     var
@@ -275,10 +276,10 @@ proc intRayOBB*(t: TraceData, that: PhysObj): colData =
                       tmax = t2
 
                     if (tmin > tmax) :
-                      result.intersecting = false
+                      result.willIntersect = false
                       return result
                 result.hitPos = t.origin + t.normal * tmin
-                result.intersecting = true
+                result.willIntersect = true
                 return result
   return result
 
@@ -297,7 +298,7 @@ proc traceRay*(trace: TraceData): TraceResult =
           break
       if (not ignore) :
         let res = intRayOBB(trace, curEnt)
-        if (res.intersecting) :
+        if (res.willIntersect) :
           let dist = distance(trace.origin, res.hitPos)
           if (dist < minDist) :
             minDist = dist
@@ -328,12 +329,12 @@ proc click*() =
 # This seperates and identifies which rules to use to test intersection
 proc intersecting(this, that: PhysObj): colData =
   if (this.physType == pAABB and that.physType == pAABB) :
-    return colData(intersecting: false)#intersectingAABB(this, that)
+    return colData(willIntersect: false)#intersectingAABB(this, that)
   elif (this.physType == pOBB and that.physType == pOBB) :
     return intOBBOBB(this, that)
   elif (this.physType == pPOLYGON and that.physType == pPOLYGON) :
-    return colData(intersecting: false)
-  return colData(intersecting: false)
+    return colData(willIntersect: false)
+  return colData(willIntersect: false)
 
 #######################
 proc update*(dt: float) = #dt was the last time it was called
@@ -349,17 +350,166 @@ proc update*(dt: float) = #dt was the last time it was called
             if (i != j) :
               if (physObjs[j].lmin != 0.0 or physObjs[j].lmax != 0.0) :
                 let cData = intersecting(curEnt, physObjs[j])
-                if (cData.intersecting) :
+                if (cData.willIntersect) :
                   curEnt.collide(cData)
                   physObjs[j].collide(cData)
-                  #if (curEnt.gravity > 0) :
-                    #echo(cData.pushDistance)
 
-                  #echo(cData.hitPos)
-                  #if (once) :
-                    #once = false
-                    #camera.pos = cData.hitPos + cData.pushAxis * cData.pushDistance
-                  #curEnt.angleVel = curEnt.angleVel * -1
       curEnt.update(dt) # move the object
-    #if (physObjs[1].intersect(physObjs[0])) :
-    #  physObjs[1].vel = vec3(0.0,1.0,0.0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+proc getBoxExtentsLocal(this: PhysObj): array[0..7, Vec3] =
+  #We will be working in local space, and THIS will be at our origin
+  let
+    thisMin = this.lmin + this.obbc
+    thisMax = this.lmax + this.obbc
+
+  return [
+    vec3(thisMin.x, thisMin.y, thisMin.z),
+    vec3(thisMin.x, thisMin.y, thisMax.z),
+    vec3(thisMin.x, thisMax.y, thisMax.z),
+    vec3(thisMin.x, thisMax.y, thisMin.z),
+    vec3(thisMax.x, thisMax.y, thisMax.z),
+    vec3(thisMax.x, thisMax.y, thisMin.z),
+    vec3(thisMax.x, thisMin.y, thisMin.z),
+    vec3(thisMax.x, thisMin.y, thisMax.z),
+  ]
+
+
+proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis, vel: Vec3, cData: var colData): bool =
+  #Handles the cross product = {0,0,0} case
+  if (axis.negligable()) :
+    return true
+
+  var
+    aMin = Inf # should be float.max but i dont know how to do that in nim
+    aMax = NegInf # should be float.min but i dont know how to do that in nim
+    bMin = Inf
+    bMax = NegInf
+    minCorn = 0
+    maxCorn = 0
+  # Define two intervals, a and b. Calculate their min and max values
+  for i in 0..7 :
+    let aDist = aCorners[i].dot(axis)
+    if (aDist < aMin) :
+      minCorn = i
+      aMin = aDist
+    if (aDist > aMax) :
+      maxCorn = i
+      aMax = aDist
+    let bDist = bCorners[i].dot(axis)
+    if (bDist < bMin) :
+     bMin = bDist
+    if (bDist > bMax) :
+     bMax = bDist
+
+  # One-dimensional intersection test between a and b
+  let longSpan = max(aMax,bMax) - min(aMin,bMin)
+  let sumSpan = (aMax - aMin) + (bMax - bMin)
+
+  if (longSpan < sumSpan) : # Change this to <= if you want the case were they are touching but not overlapping, to count as an intersection
+    if (abs(cData.pushDistance) > abs(sumSpan - longSpan)) : # We may want to push them apart after intersection
+      if (bMax < aMax) :
+        cData.pushDistance = sumSpan - longSpan
+        cData.hitPos = aCorners[minCorn]
+      else :
+        cData.pushDistance = -1 * (sumSpan - longSpan)
+        cData.hitPos = aCorners[maxCorn]
+      cData.pushAxis = axis
+    return true
+  return false
+
+
+proc intOBBOBBNew(this, that: PhysObj): colData =
+  var c = colData(hitPos: this.pos, ent1: this, ent2: this, willIntersect: false, pushDistance : 100000)
+  let
+    inv = this.matrix.inverse()
+    aCorners = getBoxExtentsLocal(this)
+
+    aX = vec3(1,0,0)#a's local X axis
+    aY = vec3(0,1,0)#a's local Y Axis
+    aZ = vec3(0,0,1)#a's local Z Axis
+    bX = inv * that.getForward()#b's local X axis
+    bY = inv * that.getUp()#b's local Y Axis
+    bZ = inv * that.getRight()#b's local Z Axis
+    vel = inv * (this.vel - that.vel) #Combined Velocity in local coords
+
+  var bCorners = getBoxExtents(that)
+  for i in 0..high(bCorners) :
+    bCorners[i] = inv * bCorners[i] # Transforms this box to local coords of A
+    #This should save calculation later
+
+  let
+    #each plane we need to check, if one of these fails, we are done ( yay )
+    cXX = aX.cross(bX)
+    cXY = aX.cross(bY)
+    cXZ = aX.cross(bZ)
+    cYX = aY.cross(bX)
+    cYY = aY.cross(bY)
+    cYZ = aY.cross(bZ)
+    cZX = aZ.cross(bX)
+    cZY = aZ.cross(bY)
+    cZZ = aZ.cross(bZ)
+  #echo("-------")
+  if (checkAxis(aCorners, bCorners, aX, c)) :
+    if (checkAxis(aCorners, bCorners, aY, c)) :
+      if (checkAxis(aCorners, bCorners, aZ, c)) :
+        if (checkAxis(aCorners, bCorners, bX, c)) :
+          if (checkAxis(aCorners, bCorners, bY, c)) :
+            if (checkAxis(aCorners, bCorners,bZ, c)) :
+              if (checkAxis(aCorners, bCorners, cXX, c)) :
+                if (checkAxis(aCorners, bCorners, cYY, c)) :
+                  if (checkAxis(aCorners, bCorners, cZZ, c)) :
+                    if (checkAxis(aCorners, bCorners, cXY, c)) :
+                      if (checkAxis(aCorners, bCorners, cXZ, c)) :
+                        if (checkAxis(aCorners, bCorners, cYX, c)) :
+                            if (checkAxis(aCorners, bCorners, cYZ, c)) :
+                              if (checkAxis(aCorners, bCorners, cZX, c)) :
+                                if (checkAxis(aCorners, bCorners, cZY, c)) :
+                                  #if (once) :
+                                    #once = false
+                                    #echo(c.hitPos)
+                                    #simple(1, proc() = camera.pos = c.hitPos)
+                                  #  simple(2, proc() = camera.pos = bCorners[1])
+                                  #  simple(3, proc() = camera.pos = bCorners[2])
+                                  #  simple(4, proc() = camera.pos = bCorners[3])
+                                  #  simple(5, proc() = camera.pos = bCorners[4])
+                                  #  simple(6, proc() = camera.pos = bCorners[5])
+                                  #  simple(7, proc() = camera.pos = bCorners[6])
+                                  #  simple(8, proc() = camera.pos = bCorners[7])
+
+
+                                  #We have our minimum seperating axis, lets calculate the hit position
+                                  c.hitPos = c.hitPos #+ (aX * c.pushDistance + aY * c.pushDistance + aZ * c.pushDistance) * (1/3)
+                                  c.willIntersect = true
+                                  return c
+  c.willIntersect = false
+  return c
