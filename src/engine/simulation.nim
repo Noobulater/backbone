@@ -447,7 +447,6 @@ proc checkAxis*(aCorners, bCorners: array[0..7, Vec3], axis, vel: Vec3, cData: v
     return true
   return false
 
-
 proc intOBBOBBNew(this, that: PhysObj): colData =
   var c = colData(hitPos: this.pos, ent1: this, ent2: this, willIntersect: false, pushDistance : 100000)
   let
