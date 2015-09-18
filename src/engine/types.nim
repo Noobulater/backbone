@@ -245,7 +245,7 @@ type
   #########GLX##########
   ######################
   RenderGroups* = enum
-    RENDERGROUP_SKYBOX, RENDERGROUP_OPAQUE, RENDERGROUP_BOTH, RENDERGROUP_TRANSPARENT, RENDERGROUP_VIEWMODEL, RENDERGROUP_VIEWMODEL_TRANSPARENT
+    RENDERGROUP_SKYBOX, RENDERGROUP_WORLD, RENDERGROUP_OPAQUE, RENDERGROUP_BOTH, RENDERGROUP_TRANSPARENT, RENDERGROUP_VIEWMODEL, RENDERGROUP_VIEWMODEL_TRANSPARENT
   Unchecked* {.unchecked.}[T] = array[1, T]
 
   Resource* = ref object of RootObj
@@ -281,6 +281,19 @@ type
   ######################
   #######PHYSICAL#######
   ######################
+  VoxelManager* = ref object
+    chunks*: VoxelChunk
+
+  Voxel* = ref object
+    textureID*: int
+    active*: bool
+
+  VoxelChunk* = ref object
+    d*: array[50, array[50,  array[50, Voxel]]]
+    matrix*: Mat4
+    handle*: int
+    size*: int
+
   TraceData* = object
     origin*, offset*, normal*: Vec3
     dist*: float
@@ -320,6 +333,7 @@ type
     #Basic motion
     angleVel*: Vec3
     vel*: Vec3
+    acceleration*: Vec3
     #view Position, for when a player is watching this entity
     viewOffset*: Vec3
     #Whether or not the entity exists (if u don't track it, then it is garbage collected)

@@ -70,7 +70,7 @@ proc def_Deploy*(weapon: WeaponData, data: Container) =
     LocalPlayer.viewModel.program = worldShader
     LocalPlayer.viewModel.material = defMaterial
     LocalPlayer.viewModel.setModel(weapon.model)
-    LocalPlayer.viewModel.visible = true
+    LocalPlayer.viewModel.visible = false
     LocalPlayer.activeWeapon = weapon
 
 #called right before unequipeding

@@ -17,6 +17,7 @@ proc addDraw*(rGroup: int, draw: proc(): bool) =
 proc drawScene*() =
   if (worldInit) :
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+
     for i in 0..high(renders) :
       glDepthMask(true)
       if (i == RENDERGROUP_VIEWMODEL.int) :

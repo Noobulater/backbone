@@ -31,11 +31,12 @@ proc spawn*(this: Character): Dray =
     this.attached.remove() # cleanup the old entity
   this.attached = newDray()
   this.attached.setModel(this.model)
-  this.attached.lmin = vec3(-1)
-  this.attached.lmax = vec3(1)
+  this.attached.lmin = vec3(-1.5,0,-1.5)
+  this.attached.lmax = vec3(1.5,9,1.5)
   this.attached.data = this
-  this.attached.viewOffset = vec3(0.0, 64.0, 0.0)
-  this.attached.pos = this.attached.pos
+  this.attached.viewOffset = vec3(0.0, 0.0, 0.0)
+  this.attached.pos = this.attached.pos + vec3(1,5,1)
+  this.attached.vel = vec3(0,-10000,0)
   return Dray(this.attached)
 
 proc newCharacter*(): Character = Character().init.track()

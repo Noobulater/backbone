@@ -306,30 +306,30 @@ let
     16,19,17,
     20,21,22,
     20,23,21,]
-  v = @[1.0'f32,-1.0,1.0,
-    -1.0,-1.0,-1.0,
-    1.0,-1.0,-1.0,
-    -1.0,-1.0,1.0,
-    1.0,1.0,1.0,
-    -1.0,1.0,-1.0,
-    -1.0,1.0,1.0,
-    1.0,1.0,-1.0,
-    1.0,-1.0,1.0,
-    1.0,1.0,-1.0,
-    1.0,1.0,1.0,
-    1.0,-1.0,-1.0,
-    1.0,-1.0,-1.0,
-    -1.0,1.0,-1.0,
-    1.0,1.0,-1.0,
-    -1.0,-1.0,-1.0,
-    -1.0,-1.0,-1.0,
-    -1.0,1.0,1.0,
-    -1.0,1.0,-1.0,
-    -1.0,-1.0,1.0,
-    1.0,1.0,1.0,
-    -1.0,-1.0,1.0,
-    1.0,-1.0,1.0,
-    -1.0,1.0,1.0]
+  v = @[0.5'f32,-0.5,0.5,
+    -0.5,-0.5,-0.5,
+    0.5,-0.5,-0.5,
+    -0.5,-0.5,0.5,
+    0.5,0.5,0.5,
+    -0.5,0.5,-0.5,
+    -0.5,0.5,0.5,
+    0.5,0.5,-0.5,
+    0.5,-0.5,0.5,
+    0.5,0.5,-0.5,
+    0.5,0.5,0.5,
+    0.5,-0.5,-0.5,
+    0.5,-0.5,-0.5,
+    -0.5,0.5,-0.5,
+    0.5,0.5,-0.5,
+    -0.5,-0.5,-0.5,
+    -0.5,-0.5,-0.5,
+    -0.5,0.5,0.5,
+    -0.5,0.5,-0.5,
+    -0.5,-0.5,0.5,
+    0.5,0.5,0.5,
+    -0.5,-0.5,0.5,
+    0.5,-0.5,0.5,
+    -0.5,0.5,0.5]
   n = @[0.0'f32,-1.0,0.0,
     0.0,-1.0,0.0,
     0.0,-1.0,0.0,
@@ -391,12 +391,12 @@ proc initCubeMesh*(program: uint32, textureScale: float): Mesh =
   for i in 0..high(data.texCoords) :
     data.texCoords[i] = data.texCoords[i] * (1.0/textureScale)
 
-  data.h.num_triangles = 24
+  data.h.num_triangles = 12
   data.h.num_vertexes = 36
 
   data.meshes = newSeq[iqmMesh](1)
-  data.meshes[0].num_triangles = 24
-  data.meshes[0].num_vertexes = 8
+  data.meshes[0].num_triangles = 12
+  data.meshes[0].num_vertexes = 36
   data.meshes[0].first_triangle = 0
   data.meshes[0].first_vertex = 0
 
@@ -416,21 +416,19 @@ proc initCubeMesh*(program: uint32, textureScale: float): Mesh =
   #if (data.h.num_anims.int < 1) :
   # STATIC OBJECTS ONLY
   vao = bufferArray()
+  discard buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32).int32 * indicies.len.int32, indicies[0].addr)
 
-  if (vertexes > 0) :
-    discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, verticies[0].addr)
-    let pos = glGetAttribLocation(program, "in_position").uint32
-    attrib(pos, 3'i32, cGL_FLOAT)
+  discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (verticies.len).int32, verticies[0].addr)
+  let pos = glGetAttribLocation(program, "in_position").uint32
+  attrib(pos, 3'i32, cGL_FLOAT)
 
-  if (normalCount > 0) :
-    discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*3).int32, normals[0].addr)
-    #let pos = glGetAttribLocation(program, "in_normal").uint32
-    attrib(1, 3'i32, cGL_FLOAT)
+  discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (verticies.len).int32, normals[0].addr)
+  #let pos = glGetAttribLocation(program, "in_normal").uint32
+  attrib(1, 3'i32, cGL_FLOAT)
 
-  if (true) : # assuming everything is textured
-    discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*2).int32, texCoords[0].addr)
-    #let pos = glGetAttribLocation(program, "in_uv").uint32
-    attrib(2, 2'i32, cGL_FLOAT)
+  discard buffer(GL_ARRAY_BUFFER, sizeof(float32).int32 * (vertexes*2).int32, texCoords[0].addr)
+  #let pos = glGetAttribLocation(program, "in_uv").uint32
+  attrib(2, 2'i32, cGL_FLOAT)
 
   result.handle = vao
   result.data = data

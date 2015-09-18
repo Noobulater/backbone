@@ -10,7 +10,7 @@ import camera, audio, timer, glx, simulation, controls
 import gui/panel
 import coords/matrix, coords/vector
 import parser/bmp
-import physical/dray
+import physical/dray, physical/voxel
 import world, scene
 import structures/details/itemUses
 import structures/player
@@ -51,7 +51,7 @@ proc init*() =
   glEnable(GL_BLEND)
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
   glEnable(GL_DEPTH_TEST)
-  #glEnable(GL_CULL_FACE)
+  glEnable(GL_CULL_FACE)
   glFrontFace(GL_CCW)
 
   txtId = parseBmp("bmps/notbadd.bmp")
@@ -114,7 +114,7 @@ proc mouseMotion( evt: MouseMotionEventPtr ) =
   #if (not mainmenu.cursor):
   setViewAngle(max(min(camera.ang.p + evt.yrel.float * camSpeed * dt, 89.9), -89.9), camera.ang.y + evt.xrel.float * camSpeed * dt)
 
-let movespeed = 1.0
+let movespeed = 0.5
 #Handles Single Key Input
 proc keyInput(evt: KeyboardEventPtr) =
   #var action = ""

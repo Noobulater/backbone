@@ -30,10 +30,10 @@ method remove*(this: Dray) =
 # Initializes this entity.
 method init*(this: Dray): Dray =
   discard physObj.init(this)
-  this.maxSpeed = 100.0
-  this.maxLift = 100.0
+  this.maxSpeed = 10.0
+  this.maxLift = 1.0
   this.drag = 0.5
-  this.gravity = 300.0
+  this.gravity = 1.0
   this
 
 proc newDray*(): Dray = Dray().init.track()
@@ -71,11 +71,11 @@ method update*(this: Dray, dt: float) =
     newVel = newVel + vec3(c.x,0.0,c.z)
 
   if (isKeyDown(K_SPACE)) :
-    newVel = newVel + vec3(0.0,this.maxLift,0.0)
-  #elif (isKeyDown(K_LCTRL)) :
-  #  this.vel[1] = this.vel[1] - this.maxLift
+    if (this.vel[1] == 0) :
+      this.vel[1] = this.vel[1] + this.maxLift
+  elif (isKeyDown(K_LCTRL)) :
+    this.vel[1] = this.vel[1] - this.maxLift
   this.shootForward = forward
-  this.vel[0] = newVel[0]
-  this.vel[2] = newVel[2]
-  this.impulse[1] = newVel[1]
+
+  this.acceleration = newVel
   procCall physObj.update(this, dt)

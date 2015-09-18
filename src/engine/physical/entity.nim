@@ -51,12 +51,15 @@ method setScale*(this: Entity, s: Vec3) =
   this.scale = s
   this.calcMatrix()
 
+let defaultAcceleration = vec3(0,0,0)
 method update*(this: Entity, dt: float) =
-  this.pos = this.pos + this.vel * dt
-  this.angle = this.angle + this.angleVel * dt
   if (this.parent != nil) :
-    this.pos = this.pos + this.parent.vel * dt
+    this.pos = this.pos + this.parent.vel * dt + this.acceleration * dt
     this.angle = this.angle + this.parent.angleVel * dt
+  else :
+    this.pos = this.pos + this.vel * dt + this.acceleration * dt
+    this.angle = this.angle + this.angleVel * dt
+  this.acceleration = defaultAcceleration # every frame reset this
   this.calcMatrix()
 
 # Initializes this entity.
@@ -65,6 +68,7 @@ method init*(this: Entity): Entity =
   this.angle = vec3(0, 0, 0)
   this.scale = vec3(1, 1, 1)
   this.vel = vec3(0, 0, 0)
+  this.acceleration = vec3(0, 0, 0)
   this.angleVel = vec3(0, 0, 0)
   this.viewOffset = vec3(0.0,0.0,0.0) # Will be the position a controller views from
   this.calcMatrix()
