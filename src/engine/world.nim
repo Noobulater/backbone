@@ -12,6 +12,17 @@ import scene
 
 proc worldDraw(): bool = return draw(worldData)
 
+proc iterate() =
+  var staggar = 5.0
+  for i in 0..49 :
+    for j in 0..49 :
+      if (worldData[j-25,2,i-25].getActive()) :
+        let x = j -25
+        let z = i -25
+        simple(staggar, proc() = camera.pos = vec3(x,2 + 1,z) )
+        staggar = staggar + 1.0
+        echo(staggar)
+
 proc init*() =
   worldShader = initProgram("phong.vert", "phong.frag")
   defMaterial = initMaterial("materials/models/terrain/grass.bmp")
@@ -20,12 +31,23 @@ proc init*() =
   worldData = newVoxelManager()
   worldData.init()
 
-  var mapChunk = newVoxelChunk()
-  mapChunk.matrix = identity().translate(vec3(0,0,0))
-  mapChunk.init()
-  mapChunk.rebuild()
+  for i in 0..3 :
+    var mapChunk = newVoxelChunk()
+    mapChunk.init()
+    mapChunk.rebuild()
+    case (i) :
+    of 0:
+      mapChunk.pos = vec3(50,0,50)
+    of 1:
+      mapChunk.pos = vec3(50,0,0)
+    of 2:
+      mapChunk.pos = vec3(0,0,50)
+    else :
+      mapChunk.pos = vec3(0,0,0)
+    mapChunk.matrix = identity().translate(mapChunk.pos)
+    worldData.chunks[i] = mapChunk
 
-  worldData.chunks = mapChunk
+  #iterate()
   #for x in 0..high(mapChunk.d) :
   #  for y in 0..high(mapChunk.d[x]) :
   #    if (y == 0) :
@@ -34,6 +56,17 @@ proc init*() =
 
     #simple(5, proc() = brick1.vel = vec3(0,-5000,0))
     #simple(5.15, proc() = brick1.vel = vec3(0,60,0))
+
+  #var brick2 = newPhysObj()
+  #brick.setPos(vec3(2.5,2.5,-4.5))
+  #brick2.setPos(vec3(2,6,6))
+  #brick2.setAngle(vec3(0.0,0.0,0.0))
+  #simple(5, proc() = brick2.setVel(vec3(0.0,-1.0,0.0)))
+  #brick2.setModel("models/crates/crate.iqm")
+  #brick2.material = initMaterial("materials/models/terrain/grass.bmp")
+  #brick2.lmin = vec3(-0.48)
+  #brick2.lmax = vec3(0.48)
+  #brick2.scale = vec3(0.5)
 
   skyShader = initProgram("phong.vert", "sky.frag")
   discard loadSkyBox("materials/skyboxes/test/skybox")

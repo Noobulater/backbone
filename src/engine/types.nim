@@ -282,7 +282,7 @@ type
   #######PHYSICAL#######
   ######################
   VoxelManager* = ref object
-    chunks*: VoxelChunk
+    chunks*: seq[VoxelChunk]
 
   Voxel* = ref object
     textureID*: int
@@ -290,6 +290,7 @@ type
 
   VoxelChunk* = ref object
     d*: array[50, array[50,  array[50, Voxel]]]
+    pos*: Vec3
     matrix*: Mat4
     handle*: int
     size*: int
@@ -348,11 +349,11 @@ type
     visible*: bool
 
   colData* = object
-    hitPos*: Vec3
+    hitPos*, hitNormal*: Vec3
     ent1*,ent2*: PhysObj
-    willIntersect*: bool
+    voxel*: Voxel # if it hit a voxel
+    intersecting*: bool
     pushDistance*: float
-    pushAxis*: Vec3 # unsticking the collision
 
   Damage* = object
     attacker*, victim*: PhysObj
@@ -376,7 +377,8 @@ type
     physType*: pType
     asleep*: bool # For saving cycles. Its asleep then its doesn't need to be checked
     dynamic*: bool # dynamic will disable any calculation regarding collision/motion
-
+    onGround*: bool
+    
   Dray* = ref object of PhysObj # Drays can be armed
     maxSpeed*: float # Regular X/Z motion
     maxLift*: float # Jumping

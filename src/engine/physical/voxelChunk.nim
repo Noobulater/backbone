@@ -1,6 +1,6 @@
 #Written By Aaron Bentley September 16th 2015
 import globals
-import opengl
+import opengl, math
 import engine/types
 import engine/coords/matrix, engine/coords/vector
 import engine/glx, engine/camera
@@ -11,11 +11,12 @@ proc `[]`*(v: VoxelChunk, i,j,k: int): Voxel = v.d[i][j][k]
 proc `[]`*(v: VoxelChunk, i,j,k: float): Voxel = v.d[i.int][j.int][k.int]
 
 method init*(chunk: VoxelChunk) =
+  chunk.pos = vec3(0)
   for x in 0..high(chunk.d) :
     for y in 0..high(chunk.d[x]) :
       for z in 0..high(chunk.d[x][y]) :
         chunk.d[x][y][z] = newVoxel()
-        if (y == 0) :
+        if (y == 0 or ((y == 1 or y == 2 or y == 3) and random(130) == 0)) :
           chunk.d[x][y][z].setActive(true)
 
 method draw*(chunk: VoxelChunk) =
@@ -31,64 +32,65 @@ method draw*(chunk: VoxelChunk) =
   glDrawElements(GL_TRIANGLES, chunk.size.int32, GL_UNSIGNED_INT, nil)
 
 let size = 0.5'f32
+let offset = 0.0'f32
 proc addFace*(i: var seq[int32], v, n: var seq[float32], position: Vec3, index, dir: int32) =
   i.add([index, index+1, index+2, index, index+3, index+1])
 
   case (dir) :
   of 0: # DOWN
-    v.add([position.x.float32 + size, position.y.float32 + -size, position.z.float32 + size,
-          position.x.float32 + -size, position.y.float32 + -size, position.z.float32 + -size,
-          position.x.float32 + size, position.y.float32 + -size, position.z.float32 + -size,
-          position.x.float32 + -size, position.y.float32 + -size, position.z.float32 + size,])
+    v.add([position.x.float32 + size + offset, position.y.float32 + -size + offset, position.z.float32 + size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + -size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + size + offset, position.y.float32 + -size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + -size + offset, position.z.float32 + size + offset,])
     n.add([0.0'f32,-1.0,0.0,
       0.0,-1.0,0.0,
       0.0,-1.0,0.0,
       0.0,-1.0,0.0,])
   of 1: # UP
-    v.add([position.x.float32 + size, position.y.float32 + size, position.z.float32 + size,
-          position.x.float32 + -size, position.y.float32 + size, position.z.float32 + -size,
-          position.x.float32 + -size, position.y.float32 + size, position.z.float32 + size,
-          position.x.float32 + size, position.y.float32 + size, position.z.float32 + -size,])
+    v.add([position.x.float32 + size + offset, position.y.float32 + size + offset, position.z.float32 + size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + size + offset, position.z.float32 + size + offset,
+          position.x.float32 + size + offset, position.y.float32 + size + offset, position.z.float32 + -size + offset,])
 
     n.add([0.0'f32,1.0,0.0,
       0.0,1.0,0.0,
       0.0,1.0,0.0,
       0.0,1.0,0.0,])
   of 2: # +Z SIDE
-    v.add([position.x.float32 + size, position.y.float32 + -size, position.z.float32 + size,
-          position.x.float32 + size, position.y.float32 + size, position.z.float32 + -size,
-          position.x.float32 + size, position.y.float32 + size, position.z.float32 + size,
-          position.x.float32 + size, position.y.float32 + -size, position.z.float32 + -size,])
+    v.add([position.x.float32 + size + offset, position.y.float32 + -size + offset, position.z.float32 + size + offset,
+          position.x.float32 + size + offset, position.y.float32 + size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + size + offset, position.y.float32 + size + offset, position.z.float32 + size + offset,
+          position.x.float32 + size + offset, position.y.float32 + -size + offset, position.z.float32 + -size + offset,])
 
     n.add([1.0'f32,0.0,0.0,
           1.0,0.0,0.0,
           1.0,0.0,0.0,
           1.0,0.0,0.0,])
   of 3: #-X Side
-    v.add([position.x.float32 + size, position.y.float32 + -size, position.z.float32 + -size,
-          position.x.float32 + -size, position.y.float32 + size, position.z.float32 + -size,
-          position.x.float32 + size, position.y.float32 + size, position.z.float32 + -size,
-          position.x.float32 + -size, position.y.float32 + -size, position.z.float32 + -size,])
+    v.add([position.x.float32 + size + offset, position.y.float32 + -size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + size + offset, position.y.float32 + size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + -size + offset, position.z.float32 + -size + offset,])
 
     n.add([0.0'f32,0.0,-1.0,
           0.0,0.0,-1.0,
           0.0,0.0,-1.0,
           0.0,0.0,-1.0,])
   of 4: #-Z Side
-    v.add([position.x.float32 + -size, position.y.float32 + -size, position.z.float32 + -size,
-          position.x.float32 + -size, position.y.float32 + size, position.z.float32 + size,
-          position.x.float32 + -size, position.y.float32 + size, position.z.float32 + -size,
-          position.x.float32 + -size, position.y.float32 + -size, position.z.float32 + size,])
+    v.add([position.x.float32 + -size + offset, position.y.float32 + -size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + size + offset, position.z.float32 + size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + size + offset, position.z.float32 + -size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + -size + offset, position.z.float32 + size + offset,])
 
     n.add([-1.0'f32,0.0,0.0,
           -1.0,0.0,0.0,
           -1.0,0.0,0.0,
           -1.0,0.0,0.0,])
   of 5: #+X Side
-    v.add([position.x.float32 + size, position.y.float32 + size, position.z.float32 + size,
-          position.x.float32 + -size, position.y.float32 + -size, position.z.float32 + size,
-          position.x.float32 + size, position.y.float32 + -size, position.z.float32 + size,
-          position.x.float32 + -size, position.y.float32 + size, position.z.float32 + size,])
+    v.add([position.x.float32 + size + offset, position.y.float32 + size + offset, position.z.float32 + size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + -size + offset, position.z.float32 + size + offset,
+          position.x.float32 + size + offset, position.y.float32 + -size + offset, position.z.float32 + size + offset,
+          position.x.float32 + -size + offset, position.y.float32 + size + offset, position.z.float32 + size + offset,])
 
     n.add([0.0'f32,0.0,1.0,
           0.0,0.0,1.0,

@@ -31,9 +31,9 @@ method remove*(this: Dray) =
 method init*(this: Dray): Dray =
   discard physObj.init(this)
   this.maxSpeed = 10.0
-  this.maxLift = 1.0
+  this.maxLift = 6.0
   this.drag = 0.5
-  this.gravity = 1.0
+  this.gravity = 6.0
   this
 
 proc newDray*(): Dray = Dray().init.track()
@@ -72,6 +72,7 @@ method update*(this: Dray, dt: float) =
 
   if (isKeyDown(K_SPACE)) :
     if (this.vel[1] == 0) :
+      newVel[1] = this.maxLift
       this.vel[1] = this.vel[1] + this.maxLift
   elif (isKeyDown(K_LCTRL)) :
     this.vel[1] = this.vel[1] - this.maxLift

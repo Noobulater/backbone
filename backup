@@ -422,3 +422,38 @@ proc addVectorToSeq(data: seq[float32], vector: Vec3): int =
   normals.add(0.0)
   normals.add(1.0)
   normals.add(0.0)
+
+
+
+
+  for m in 0..2 :
+    var j = 1 #make y axis our priority
+    echo(maxv)
+    if (true):#result.hitNormal[j]) :
+      let
+        val = result.hitNormal[j]
+        voxMin = result.hitPos[j] - 0.5
+        voxMax = result.hitPos[j] + 0.5
+
+      #echo(voxMin, ",", voxMax, " | ", lmin[j], ",", lmax[j])
+      result.hitNormal = vec3(0)
+      if (val < 0) :
+        let pen = voxMin - lmax[j]
+        result.hitNormal[j] = -1
+        if (this.acceleration.normal()[j] > 0) :
+          this.acceleration[j] = min(0, this.acceleration[j])
+        if (this.vel.normal()[j] > 0) :
+          this.vel[j] = min(0, this.vel[j])
+        #unstick
+        #this.pos[j] = origin[j] + obbc[j] + pen + 0.05 # voxel size is 1.0 result.hitPos[j] - 1
+        echo(pen)
+        echo(j)
+      else :
+        let pen = voxMax - lmin[j]
+        result.hitNormal[j] = 1
+        if (this.acceleration.normal()[j] < 0) :
+          this.acceleration[j] = max(0, this.acceleration[j])
+        if (this.vel.normal()[j] < 0) :
+          this.vel[j] = max(0, this.vel[j])
+        #this.pos[j] = origin[j] + obbc[j] + pen + 0.05 # voxel size is 1.0
+      break

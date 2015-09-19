@@ -59,7 +59,7 @@ method update*(this: PhysObj, dt: float) =
 method collide*(this: PhysObj, cData: colData) =
   if (this.dynamic) : #will respond to collisions
     # Unstick before we do collision
-    this.pos = this.pos + cData.pushAxis * cData.pushDistance
+    this.pos = this.pos + cData.hitNormal * cData.pushDistance
     let
       ent1 = cData.ent1
       ent2 = cData.ent2
@@ -71,7 +71,7 @@ method collide*(this: PhysObj, cData: colData) =
     if (ent1 == this) :
       #this.vel = ((v1 * ((m1 - m2)/(d)).float + v2 * ((2.0 * m2)/(d)).float)) * -1.0
       #this.vel = this.vel - cData.pushAxis * this.vel
-      this.vel = this.friction * (this.vel - (cData.pushAxis * this.vel.dot(cData.pushAxis)) * 2)
+      this.vel = this.friction * (this.vel - (cData.hitNormal * this.vel.dot(cData.hitNormal)) * 2)
       this.angleVel = vec3(0)
     #else:
       #this.vel = (v1 * ((2.0 * m1)/(d)).float - v2 * ((m1 - m2)/(d)).float) * -1.0
