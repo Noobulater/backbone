@@ -16,7 +16,7 @@ method init*(chunk: VoxelChunk) =
     for y in 0..high(chunk.d[x]) :
       for z in 0..high(chunk.d[x][y]) :
         chunk.d[x][y][z] = newVoxel()
-        if (y == 0 or ((y == 1 or y == 2 or y == 3) and random(130) == 0)) :
+        if (y == 0 or ((y == 1 or y == 2 or y == 3) and random(40) == 0)) :
           chunk.d[x][y][z].setActive(true)
 
 method draw*(chunk: VoxelChunk) =

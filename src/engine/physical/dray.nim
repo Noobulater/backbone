@@ -72,9 +72,10 @@ method update*(this: Dray, dt: float) =
 
   if (isKeyDown(K_SPACE)) :
     if (this.vel[1] == 0) :
-      newVel[1] = this.maxLift
+      #newVel[1] = this.maxLift
       this.vel[1] = this.vel[1] + this.maxLift
   elif (isKeyDown(K_LCTRL)) :
+    #newVel[1] = -this.maxLift
     this.vel[1] = this.vel[1] - this.maxLift
   this.shootForward = forward
 

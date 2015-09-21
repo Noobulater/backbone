@@ -11,7 +11,7 @@ proc spawn() =
   discard LocalPlayer.spawn()
 
 proc init*() =
-  simple(2, spawn)
+  simple(4, spawn)
   #Lets setup inventory
   var item1 = newItem()
   item1.name = "Item 1"

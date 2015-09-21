@@ -32,10 +32,10 @@ proc spawn*(this: Character): Dray =
   this.attached = newDray()
   this.attached.setModel(this.model)
   this.attached.lmin = vec3(-0.4,0,-0.4)
-  this.attached.lmax = vec3(0.4,0.88,0.4)
+  this.attached.lmax = vec3(0.4,0.85,0.4)
   this.attached.data = this
   this.attached.viewOffset = vec3(0.0, 0.1, 0.0)
-  this.attached.pos = this.attached.pos + vec3(2.0,79.0,4.0)
+  this.attached.pos = this.attached.pos + vec3(2,5,2)#vec3(13.29919265285266, -0.07019956134196657, 11.37370407960383)
   this.attached.vel = vec3(0.0,0.0,0.0)
   return Dray(this.attached)
 
